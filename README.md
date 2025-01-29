@@ -1,2 +1,2 @@
 # zclp++
-My own implementation of QUIC like protocol in c++
+My own implementation of QUIC protocol in c++
