@@ -92,6 +92,7 @@ struct ShortHeader {
     uint8_t packet_number_length : 2;
     uint32_t destination_connection;
     uint8_t packet_number : 3;
+    void* payload;  // Frames
 } __attribute__((packed));
 
 }  // namespace Packets
