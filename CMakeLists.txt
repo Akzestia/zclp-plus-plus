@@ -11,3 +11,7 @@ endif()
 if(BUILD_SERVER)
     add_subdirectory(server)
 endif()
+
+add_subdirectory(zclp_utils)
+
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/user/certs")
