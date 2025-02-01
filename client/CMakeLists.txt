@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 3.16)
-project(server)
+project(client)
 
-ADD_EXECUTABLE(server
+ADD_EXECUTABLE(client
     main.cpp
-    server.cpp
+    client.cpp
 )
 
-set_target_properties(server PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(client
     zclp_utils
 )
 
-target_include_directories(server
+target_include_directories(client
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
