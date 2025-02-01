@@ -8,6 +8,10 @@ ADD_EXECUTABLE(server
 
 set_target_properties(server PROPERTIES LINKER_LANGUAGE CXX)
 
+target_link_libraries(client
+    zclp_utils
+)
+
 target_include_directories(server
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
