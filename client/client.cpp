@@ -1,5 +1,6 @@
 #include "client.h"
 
+#include <openssl/crypto.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -10,6 +11,18 @@
 #include "../tokio-cpp/tokio.hpp"
 
 Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
+    auto result_pb = tls.pub_key_to_bytes();
+    auto result_pr = tls.private_key_to_bytes();
+
+    tls.strip_pem_formatting(result_pb->result, result_pb->len);
+    tls.strip_pem_formatting(result_pr->result, result_pr->len);
+    printf("%.*s\n", (int)result_pb->len, result_pb->result);
+    printf("%.*s\n", (int)result_pr->len, result_pr->result);
+
+    delete result_pb;
+    delete result_pr;
+    result_pb = nullptr;
+    result_pr = nullptr;
 }
 
 bool Client::run() {
@@ -62,7 +75,7 @@ bool Client::run() {
 bool Client::send(uint8_t* message, ssize_t len) {
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
-    dest_addr.sin_port = htons(8080);
+    dest_addr.sin_port = htons(6666);
     dest_addr.sin_addr.s_addr = inet_addr("0.0.0.0");
 
     ssize_t sent_len = sendto(m_socket_fd, message, len, 0,
@@ -79,4 +92,25 @@ void Client::process_udp_pack(uint8_t* packet, ssize_t len) {
     printf("Received message: %.*s\n", (int)len, packet);
     delete[] packet;
     packet = nullptr;
+}
+
+bool Client::connect() {
+    Packets::LongHeader header;
+
+    header.header_form = 1;
+    header.fixed_bit = 1;
+    header.packet_type = 0;
+    header.packet_type = 0;
+    header.reserved_bits = 0;
+    header.version_id = htonl(0x00000001);
+
+    Packets::Initial packet;
+    packet.header = header;
+    packet.packet_number = 0;
+    packet.length = 532;
+    packet.token_length = 0;
+    packet.token = nullptr;
+    packet.payload = Frames::Crypto();
+
+    return true;
 }
