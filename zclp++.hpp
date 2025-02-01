@@ -1,3 +1,7 @@
+#ifndef ZCLP_PLUS_PLUS
+#define ZCLP_PLUS_PLUS
+
+#include <memory.h>
 #include <unistd.h>
 
 #include <cstdint>
@@ -17,7 +21,37 @@
 
 struct VariableLengthInteger {
     uint8_t len : 2;
-    uint8_t* value;  // ((2^Len)*8)-2 bits
+    uint64_t value;
+
+    VariableLengthInteger() : len(0), value(0) {}
+
+    explicit VariableLengthInteger(uint64_t val) { *this = val; }
+
+    size_t size() const { return 1 << len; }
+
+    VariableLengthInteger& operator=(uint64_t val) {
+        uint8_t required_len;
+        if (val <= 0x3F)
+            required_len = 0;  // 6 bits (1 byte)
+        else if (val <= 0x3FFF)
+            required_len = 1;  // 14 bits (2 bytes)
+        else if (val <= 0x3FFFFFFF)
+            required_len = 2;  // 30 bits (4 bytes)
+        else
+            required_len = 3;  // 62 bits (8 bytes)
+
+        uint64_t max_val = (1ULL << ((1 << required_len) * 8 - 2)) - 1;
+        if (val > max_val) {
+            throw "Way too big value";
+        }
+
+        len = required_len;
+        value = val;
+        return *this;
+    }
+
+    operator uint64_t() const { return value; }
+    uint64_t operator()() const { return value; }
 };
 
 namespace Frames {
@@ -66,6 +100,7 @@ struct Crypto {
     VariableLengthInteger type;  // 6;
     VariableLengthInteger offset;
     VariableLengthInteger length;
+    uint8_t* data;
 };
 
 struct NewToken {
@@ -259,3 +294,4 @@ func remove_protection(from: Protected Packet) -> Unprotected Packet:
       return Protected Packet
 */
 }
+#endif  // ZCLP_PLUS_PLUS
