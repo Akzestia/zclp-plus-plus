@@ -11,18 +11,18 @@
 #include "../tokio-cpp/tokio.hpp"
 
 Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
-    auto result_pb = tls.pub_key_to_bytes();
-    auto result_pr = tls.private_key_to_bytes();
+    // auto result_pb = tls.pub_key_to_bytes();
+    // auto result_pr = tls.private_key_to_bytes();
 
-    tls.strip_pem_formatting(result_pb->result, result_pb->len);
-    tls.strip_pem_formatting(result_pr->result, result_pr->len);
-    printf("%.*s\n", (int)result_pb->len, result_pb->result);
-    printf("%.*s\n", (int)result_pr->len, result_pr->result);
+    // tls.strip_pem_formatting(result_pb->result, result_pb->len);
+    // tls.strip_pem_formatting(result_pr->result, result_pr->len);
+    // printf("%.*s\n", (int)result_pb->len, result_pb->result);
+    // printf("%.*s\n", (int)result_pr->len, result_pr->result);
 
-    delete result_pb;
-    delete result_pr;
-    result_pb = nullptr;
-    result_pr = nullptr;
+    // delete result_pb;
+    // delete result_pr;
+    // result_pb = nullptr;
+    // result_pr = nullptr;
 }
 
 bool Client::run() {
@@ -110,7 +110,6 @@ bool Client::connect() {
     packet.length = 532;
     packet.token_length = 0;
     packet.token = nullptr;
-    packet.payload = Frames::Crypto();
 
     return true;
 }

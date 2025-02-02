@@ -4,7 +4,10 @@
 #include <memory.h>
 #include <unistd.h>
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <optional>
 #include <variant>
 #include <vector>
@@ -20,31 +23,32 @@
 */
 
 struct VariableLengthInteger {
+  private:
     uint8_t len : 2;
     uint64_t value;
 
+  public:
     VariableLengthInteger() : len(0), value(0) {}
 
     explicit VariableLengthInteger(uint64_t val) { *this = val; }
 
-    size_t size() const { return 1 << len; }
+    size_t size() const { return pow(2, len); }
 
     VariableLengthInteger& operator=(uint64_t val) {
         uint8_t required_len;
         if (val <= 0x3F)
-            required_len = 0;  // 6 bits (1 byte)
+            required_len = 0;  // 6 bits (1 byte) 63
         else if (val <= 0x3FFF)
-            required_len = 1;  // 14 bits (2 bytes)
+            required_len = 1;  // 14 bits (2 bytes) 16,383
         else if (val <= 0x3FFFFFFF)
-            required_len = 2;  // 30 bits (4 bytes)
+            required_len = 2;  // 30 bits (4 bytes) 1,073,741,823
         else
-            required_len = 3;  // 62 bits (8 bytes)
+            required_len = 3;  // 62 bits (8 bytes) 4,611,686,018,427,387,903
 
         uint64_t max_val = (1ULL << ((1 << required_len) * 8 - 2)) - 1;
         if (val > max_val) {
             throw "Way too big value";
         }
-
         len = required_len;
         value = val;
         return *this;
@@ -52,6 +56,7 @@ struct VariableLengthInteger {
 
     operator uint64_t() const { return value; }
     uint64_t operator()() const { return value; }
+    uint8_t len_() const { return len; }
 };
 
 namespace Frames {
@@ -201,8 +206,18 @@ namespace Packets {
 struct StatelessReset {
     uint8_t header_form : 1;
     uint8_t fixed_bit : 1;
-    uint64_t* upredictable_bits;
+
+    VariableLengthInteger unpredictable_bits;
     uint8_t reset_token[16];
+
+    size_t byte_size() const {
+        /*
+            16 bytes token
+            1 byte HF && FBs
+            N bytes unpredictable_bits.size()
+        */
+        return 16 + 1 + unpredictable_bits.size();
+    }
 };
 
 struct VersionNegotiation {
@@ -212,6 +227,16 @@ struct VersionNegotiation {
     uint32_t destination_connection_id;
     uint32_t source_connection_id;
     std::vector<uint32_t> supported_versions;
+
+    size_t byte_size() const {
+        /*
+            1 byte HF && unused
+            12 bytes version_id && destination_connection_id &&
+            source_connection_id
+            4 * N bytes supported_versions
+        */
+        return 15 + 4 * supported_versions.size();
+    }
 };
 
 struct LongHeader {
@@ -241,21 +266,21 @@ struct Initial {
     uint8_t* token;
     VariableLengthInteger length;
     uint8_t packet_number : 3;
-    Frames::FrameVariant payload;  // Frames
+    std::vector<Frames::FrameVariant> payload;  // Frames
 };
 
 struct ZeroRTT {
     LongHeader header;
     VariableLengthInteger token_length;
     uint8_t packet_number : 3;
-    Frames::FrameVariant payload;  // Frames
+    std::vector<Frames::FrameVariant> payload;  // Frames
 };
 
 struct HandShake {
     LongHeader header;
     VariableLengthInteger token_length;
     uint8_t packet_number : 3;
-    Frames::FrameVariant payload;  // Frames
+    std::vector<Frames::FrameVariant> payload;  // Frames
 };
 
 struct Retry {
@@ -273,7 +298,7 @@ struct ShortHeader {
     uint8_t packet_number_length : 2;
     uint32_t destination_connection;
     uint8_t packet_number : 3;
-    Frames::FrameVariant payload;  // Frames
+    std::vector<Frames::FrameVariant> payload;  // Frames
 };
 
 }  // namespace Packets

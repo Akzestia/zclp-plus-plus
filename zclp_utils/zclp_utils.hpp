@@ -1,24 +1,55 @@
 #ifndef ZCLP_UTILS
 #define ZCLP_UTILS
+#include <arpa/inet.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
+#include <random>
 
 #include "../zclp++.hpp"
 
+inline void printu8(const uint8_t* in, size_t len) {
+    for (size_t i = 0; i < len; i++) {
+        for (int j = 7; j >= 0; j--) {
+            int bit = (in[i] >> j) & 1;
+            printf("[%i]", bit);
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+inline void shift_right(uint8_t* data, size_t len, unsigned shift) {
+    if (shift == 0 || len == 0)
+        return;
+    for (ssize_t i = len - 1; i >= 0; i--) {
+        uint8_t left_carry = 0;
+        if (i > 0)
+            left_carry = data[i - 1] << (8 - shift);
+        data[i] = (data[i] >> shift) | left_carry;
+    }
+}
+
+inline void shift_left(uint8_t* data, size_t len, unsigned shift) {
+    if (shift == 0 || len == 0)
+        return;
+    for (size_t i = 0; i < len; i++) {
+        uint8_t right_carry = 0;
+        if (i < len - 1)
+            right_carry = data[i + 1] >> (8 - shift);
+        data[i] = (data[i] << shift) | right_carry;
+    }
+}
+
 namespace zclp_parsing {
-template<typename T>
-struct ParserResult {
-    bool success;
-    size_t bytes_read;
-    T value;
-};
 
 inline bool is_long_header(uint8_t first_byte) {
     return (first_byte & 0x80) == 1 && ((first_byte & 0x40) == 1);
@@ -28,34 +59,6 @@ inline bool is_short_header(uint8_t first_byte) {
     return (first_byte & 0x80) == 0 && ((first_byte & 0x40) == 1);
 }
 
-inline ParserResult<uint64_t> parse_variable_length_integer(const uint8_t* data,
-                                                            ssize_t len) {
-    if (len < 1) {
-        return {false, 0, 0};
-    }
-
-    uint8_t first_byte = data[0];
-    uint8_t type = first_byte >> 6;
-    size_t length = 1 << type;
-
-    if (len < length) {
-        return {false, 0, 0};
-    }
-
-    uint64_t value = 0;
-    for (size_t i = 0; i < length; i++) {
-        value = (value << 8) | data[i];
-    }
-    value &= (1ULL << ((length * 8) - 2)) - 1;
-
-    return {true, length, value};
-}
-
-inline ParserResult<Packets::ShortHeader> parse_short_header(
-    const uint8_t* data, ssize_t len);
-inline ParserResult<Packets::LongHeader> parse_long_header(const uint8_t* data,
-                                                           ssize_t len);
-
 }  // namespace zclp_parsing
 
 namespace zclp_encoding {
@@ -64,40 +67,157 @@ struct EncodingResult {
     size_t len;
 };
 
-inline EncodingResult encode_variable_length_integer(uint64_t value,
-                                                     uint8_t* out,
-                                                     size_t max_len) {
-    if (value < (1ULL << 6)) {
-        if (max_len < 1)
-            return {false, 0};
-        out[0] = static_cast<uint8_t>(value);
-        return {true, 1};
-    } else if (value < (1ULL << 14)) {
-        if (max_len < 2)
-            return {false, 0};
-        uint16_t encoded = static_cast<uint16_t>(value | 0x4000);
-        out[0] = encoded >> 8;
-        out[1] = encoded & 0xFF;
-        return {true, 2};
-    } else if (value < (1ULL << 30)) {
-        if (max_len < 4)
-            return {false, 0};
-        uint32_t encoded = static_cast<uint32_t>(value | 0x80000000);
-        for (int i = 0; i < 4; i++) {
-            out[i] = (encoded >> (24 - i * 8)) & 0xFF;
-        }
-        return {true, 4};
-    } else if (value < (1ULL << 62)) {
-        if (max_len < 8)
-            return {false, 0};
-        uint64_t encoded = value | 0xC000000000000000;
-        for (int i = 0; i < 8; i++) {
-            out[i] = (encoded >> (56 - i * 8)) & 0xFF;
-        }
-        return {true, 8};
+inline size_t get_vl_len(const uint8_t* in) {
+    uint8_t first_byte = in[0];
+    uint8_t len_indicator = first_byte >> 6;
+
+    switch (len_indicator) {
+    case 0:
+        return 1;
+    case 1:
+        return 2;
+    case 2:
+        return 4;
+    case 3:
+        return 8;
+    default:
+        return -1;
     }
-    return {false, 0};
+};
+
+inline EncodingResult encode_vl_integer(const VariableLengthInteger& in,
+                                        uint8_t*& out) {
+    size_t len = in.size();
+    uint64_t value = in();
+    out = new uint8_t[len]();
+
+    for (size_t i = 0; i < len; i++)
+        out[i] = (value >> ((len - 1 - i) * 8)) & 0xFF;
+
+    out[0] |= (in.len_() << 6);
+
+    return {true, len};
 }
+
+inline EncodingResult decode_vl_integer(uint8_t* in,
+                                        VariableLengthInteger& out) {
+    uint64_t value = 0;
+    size_t len = get_vl_len(in);
+
+    in[0] &= 0b00111111;
+
+    for (size_t i = 0; i < len; i++)
+        value |= (static_cast<uint64_t>(in[i]) << ((len - 1 - i) * 8));
+
+    out = VariableLengthInteger(value);
+    return {true, out.size()};
+}
+
+inline EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
+                                             uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* vl_out;
+    auto enc_res = encode_vl_integer(in.unpredictable_bits, vl_out);
+
+    for (int i = 0; i < enc_res.len; i++)
+        memcpy(out + i + 1, &vl_out[i], 1);
+    memcpy(out + enc_res.len + 1, in.reset_token, 16);
+    shift_left(out, len, 6);
+    out[0] |= (in.header_form << 7);
+    out[0] |= (in.fixed_bit << 6);
+    delete[] vl_out;
+    vl_out = nullptr;
+    return {true, len};
+}
+
+inline EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
+                                             Packets::StatelessReset& out) {
+    uint8_t HF = ((in[0] >> 7) & 1);
+    uint8_t FB = ((in[0] >> 6) & 1);
+
+    out.header_form = HF;
+    out.fixed_bit = FB;
+
+    shift_right(in, in_len, 6);
+
+    VariableLengthInteger vl_out;
+    decode_vl_integer(in + 1, vl_out);
+
+    out.unpredictable_bits = vl_out;
+
+    size_t token_offset = in_len - 16;
+
+    for (int i = token_offset; i < in_len; i++) {
+        uint8_t token_value = in[i];
+        out.reset_token[i - token_offset] = token_value;
+    }
+    return {true, in_len};
+}
+
+inline EncodingResult encode_version_negotiation(
+    const Packets::VersionNegotiation& in, uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* version_id = reinterpret_cast<uint8_t*>(in.version_id);
+    uint8_t* destination_connection_id =
+        reinterpret_cast<uint8_t*>(in.destination_connection_id);
+    uint8_t* source_connection_id =
+        reinterpret_cast<uint8_t*>(in.source_connection_id);
+    uint8_t offset = 0;
+    // 4 - bytes u32
+    for (int i = 0; i < 4; i++)
+        memcpy(out + i + offset++, &version_id[i], 4);
+    for (int i = 0; i < 4; i++)
+        memcpy(out + i + offset++, &destination_connection_id[i], 4);
+    for (int i = 0; i < 4; i++)
+        memcpy(out + i + offset++, &destination_connection_id[i], 4);
+
+    return EncodingResult();
+}
+
+inline EncodingResult decode_version_negotiation(
+    uint8_t* in, size_t in_len, Packets::VersionNegotiation& out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_long_header(const Packets::LongHeader& in,
+                                         uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_protected_long_header(
+    const Packets::ProtectedLongHeader& in, uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_initial_packet(const Packets::Initial& in,
+                                            uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_0rtt_packet(const Packets::ZeroRTT& in,
+                                         uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_handshake_packet(const Packets::HandShake& in,
+                                              uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_retry_packet(const Packets::Retry& in,
+                                          uint8_t* out) {
+    return EncodingResult();
+}
+
+inline EncodingResult encode_short_header(const Packets::ShortHeader& in,
+                                          uint8_t* out) {
+    return EncodingResult();
+}
+
 }  // namespace zclp_encoding
 
 namespace zclp_tls {
@@ -422,4 +542,33 @@ struct zclp_tls_arena {
 };
 
 }  // namespace zclp_tls
+
+namespace zclp_test_heplers {
+
+inline void fill_random(uint8_t* data, size_t len) {
+    std::random_device rd;
+    std::mt19937 engine(rd());
+    std::uniform_int_distribution<uint16_t> dist(0, 255);
+
+    for (size_t i = 0; i < len; ++i) {
+        data[i] = static_cast<uint8_t>(dist(engine));
+    }
+}
+
+inline void fill_stateless_reset(Packets::StatelessReset& st) {
+    fill_random(st.reset_token, sizeof(st.reset_token));
+}
+
+inline void print_array(const uint8_t* data, size_t len) {
+    for (size_t i = 0; i < len; ++i) {
+        printf("[%i]", data[i]);
+        if ((i + 1) % 8 == 0)
+            printf("\n");
+    }
+    if (len % 8 != 0)
+        printf("\n");
+}
+
+}  // namespace zclp_test_heplers
+
 #endif  // ZCLP_UTILS
