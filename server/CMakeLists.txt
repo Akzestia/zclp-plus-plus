@@ -8,7 +8,7 @@ ADD_EXECUTABLE(server
 
 set_target_properties(server PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(client
+target_link_libraries(server
     zclp_utils
 )
 
