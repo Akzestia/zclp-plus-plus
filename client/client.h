@@ -19,7 +19,7 @@ struct Client {
     struct sockaddr_in m_addr;
     uint16_t m_port;
     const int m_max_mtu;
-    zclp_tls::zclp_tls_arena tls;
+    zclp_tls::zclp_tls_arena m_tls;
 
     std::atomic<bool> m_is_running;
 };
