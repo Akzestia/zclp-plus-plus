@@ -12,6 +12,8 @@ struct Client {
     void process_udp_pack(uint8_t* packet, ssize_t len);
     [[nodiscard]] bool send(uint8_t* message, ssize_t len);
     [[nodiscard]] bool connect();
+    // connection with resumption ticket
+    [[nodiscard]] bool reconnect();
     [[nodiscard]] bool disconnect();
 
   private:
