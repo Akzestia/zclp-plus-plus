@@ -30,7 +30,7 @@ TEST_F(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
             zclp_encoding::decode_vl_integer(encodedData, decodedVl);
 
         ASSERT_EQ(decodedVl(), vl()) << "Value mismatch at iteration " << i;
-        ASSERT_EQ(decodedVl.size(), vl.size())
+        ASSERT_EQ(decodedVl.byte_size(), vl.byte_size())
             << "Length mismatch at iteration " << i;
 
         delete[] encodedData;
@@ -55,8 +55,8 @@ TEST_F(VariableLengthIntegerTest, EdgeCaseValues) {
         auto decodingResult =
             zclp_encoding::decode_vl_integer(encodedData, decodedVl);
         ASSERT_EQ(decodedVl(), vl()) << "Edge case failed for value: " << vl();
-        ASSERT_EQ(decodedVl.size(), vl.size())
-            << "Edge case length mismatch for value: " << vl.size();
+        ASSERT_EQ(decodedVl.byte_size(), vl.byte_size())
+            << "Edge case length mismatch for value: " << vl.byte_size();
 
         delete[] encodedData;
     }
