@@ -6,6 +6,7 @@
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
+#include <sys/types.h>
 
 #include <cmath>
 #include <cstddef>
@@ -87,7 +88,7 @@ inline size_t get_vl_len(const uint8_t* in) {
 
 inline EncodingResult encode_vl_integer(const VariableLengthInteger& in,
                                         uint8_t*& out) {
-    size_t len = in.size();
+    size_t len = in.byte_size();
     uint64_t value = in();
     out = new uint8_t[len]();
 
@@ -110,7 +111,7 @@ inline EncodingResult decode_vl_integer(uint8_t* in,
         value |= (static_cast<uint64_t>(in[i]) << ((len - 1 - i) * 8));
 
     out = VariableLengthInteger(value);
-    return {true, out.size()};
+    return {true, out.byte_size()};
 }
 
 inline EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
@@ -161,61 +162,229 @@ inline EncodingResult encode_version_negotiation(
     size_t len = in.byte_size();
     out = new uint8_t[len]();
 
-    uint8_t* version_id = reinterpret_cast<uint8_t*>(in.version_id);
-    uint8_t* destination_connection_id =
-        reinterpret_cast<uint8_t*>(in.destination_connection_id);
-    uint8_t* source_connection_id =
-        reinterpret_cast<uint8_t*>(in.source_connection_id);
-    uint8_t offset = 0;
+    uint8_t offset = 1;
     // 4 - bytes u32
-    for (int i = 0; i < 4; i++)
-        memcpy(out + i + offset++, &version_id[i], 4);
-    for (int i = 0; i < 4; i++)
-        memcpy(out + i + offset++, &destination_connection_id[i], 4);
-    for (int i = 0; i < 4; i++)
-        memcpy(out + i + offset++, &destination_connection_id[i], 4);
+    memcpy(out + offset, &in.version_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.destination_connection_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.source_connection_id, 4);
+    offset += 4;
+    for (int i = 0; i < in.supported_versions.size(); i++) {
+        memcpy(out + offset, &in.supported_versions[i], 4);
+        offset += 4;
+    }
 
-    return EncodingResult();
+    shift_left(out, len, 1);
+    out[0] |= (in.header_form << 7);
+    out[0] |= (in.unused << 1);
+
+    return {true, len};
 }
 
 inline EncodingResult decode_version_negotiation(
     uint8_t* in, size_t in_len, Packets::VersionNegotiation& out) {
-    return EncodingResult();
+    size_t offset = 1;
+
+    out.header_form = ((in[0] >> 7) & 1);
+    out.unused = (in[0] >> 1) & 0x3F;
+
+    shift_right(in, in_len, 1);
+
+    memcpy(&out.version_id, in + offset, 4);
+    offset += 4;
+
+    memcpy(&out.destination_connection_id, in + offset, 4);
+    offset += 4;
+
+    memcpy(&out.source_connection_id, in + offset, 4);
+    offset += 4;
+
+    int supported_versions_size = (in_len - offset) / 4;
+
+    out.supported_versions.resize(supported_versions_size);
+
+    for (int i = 0; i < supported_versions_size; i++) {
+        memcpy(&out.supported_versions[i], in + offset, 4);
+        offset += 4;
+    }
+
+    return {true, in_len};
 }
 
 inline EncodingResult encode_long_header(const Packets::LongHeader& in,
-                                         uint8_t* out) {
-    return EncodingResult();
+                                         uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    out[0] |= (in.header_form << 7);
+    out[0] |= (in.fixed_bit << 6);
+    out[0] |= (in.packet_type << 4);
+    out[0] |= (in.reserved_bits << 2);
+    out[0] |= (in.packet_number_length << 0);
+
+    size_t offset = 1;
+    memcpy(out + offset, &in.version_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.destination_connection_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.source_connection_id, 4);
+    offset += 4;
+    return {true, len};
+}
+
+inline EncodingResult decode_long_header(uint8_t* in, size_t in_len,
+                                         Packets::LongHeader& out) {
+    out.header_form = ((in[0] >> 7) & 1);
+    out.fixed_bit = ((in[0] >> 6) & 1);
+    out.packet_type = ((in[0] >> 4) & 0x03);
+    out.reserved_bits = ((in[0] >> 2) & 0x03);
+    out.packet_number_length = ((in[0] >> 0) & 0x03);
+
+    size_t offset = 1;
+
+    memcpy(&out.version_id, in + offset, 4);
+    offset += 4;
+    memcpy(&out.destination_connection_id, in + offset, 4);
+    offset += 4;
+    memcpy(&out.source_connection_id, in + offset, 4);
+
+    return {true, in_len};
 }
 
 inline EncodingResult encode_protected_long_header(
-    const Packets::ProtectedLongHeader& in, uint8_t* out) {
-    return EncodingResult();
+    const Packets::ProtectedLongHeader& in, uint8_t*& out) {
+    size_t len = in.byte_size();
+
+    out = new uint8_t[len]();
+
+    out[0] |= (in.header_form << 7);
+    out[0] |= (in.fixed_bit << 6);
+    out[0] |= (in.packet_type << 4);
+    out[0] |= (in.protected_bits << 0);
+
+    size_t offset = 1;
+    memcpy(out + offset, &in.version_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.destination_connection_id, 4);
+    offset += 4;
+    memcpy(out + offset, &in.source_connection_id, 4);
+    offset += 4;
+
+    return {true, len};
+}
+
+inline EncodingResult decode_protected_long_header(
+    uint8_t* in, size_t in_len, Packets::ProtectedLongHeader& out) {
+    out.header_form = ((in[0] >> 7) & 1);
+    out.fixed_bit = ((in[0] >> 6) & 1);
+    out.packet_type = ((in[0] >> 4) & 0x03);
+    out.protected_bits = ((in[0] >> 0) & 0x0F);
+
+    size_t offset = 1;
+
+    memcpy(&out.version_id, in + offset, 4);
+    offset += 4;
+    memcpy(&out.destination_connection_id, in + offset, 4);
+    offset += 4;
+    memcpy(&out.source_connection_id, in + offset, 4);
+
+    return {true, in_len};
 }
 
 inline EncodingResult encode_initial_packet(const Packets::Initial& in,
-                                            uint8_t* out) {
-    return EncodingResult();
+                                            uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+    size_t offset = 0;
+
+    auto header_encode = encode_long_header(in.header, out);
+    if (!header_encode.success)
+        return {false, header_encode.len + offset};
+    offset += header_encode.len;
+
+    uint8_t* ref_token_len = out + offset;
+    auto token_len = encode_vl_integer(in.token_length, ref_token_len);
+    if (!token_len.success)
+        return {false, token_len.len + offset};
+    offset += token_len.len;
+    ref_token_len = nullptr;
+
+    memcpy(out + offset, in.token, in.token_length());
+    offset += in.token_length();
+
+    uint8_t* ref_len = out + offset;
+    auto len_ = encode_vl_integer(in.length, ref_len);
+    if (!len_.success)
+        return {false, len_.len + offset};
+    offset += len_.len;
+    ref_len = nullptr;
+
+    size_t packet_number_offset = offset++;
+
+    for (auto frame : in.payload) {
+        auto size = Frames::frame_size(frame);
+        memcpy(out + offset, &frame, size);
+        offset += size;
+    }
+
+    shift_left(out, len, 5);
+    out[packet_number_offset] |= (in.packet_number << 5);
+
+    return {true, len};
+}
+
+inline EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
+                                            Packets::Initial& out) {
+    return {true, in_len};
 }
 
 inline EncodingResult encode_0rtt_packet(const Packets::ZeroRTT& in,
-                                         uint8_t* out) {
-    return EncodingResult();
+                                         uint8_t*& out) {
+    size_t len = in.byte_size();
+
+    return {true, len};
+}
+
+inline EncodingResult decode_0rtt_packet(uint8_t* in, size_t in_len,
+                                         Packets::ZeroRTT& out) {
+    return {true, in_len};
 }
 
 inline EncodingResult encode_handshake_packet(const Packets::HandShake& in,
-                                              uint8_t* out) {
-    return EncodingResult();
+                                              uint8_t*& out) {
+    size_t len = in.byte_size();
+
+    return {true, len};
+}
+
+inline EncodingResult decode_handshake_packet(uint8_t* in, size_t in_len,
+                                              Packets::Initial& out) {
+    return {true, in_len};
 }
 
 inline EncodingResult encode_retry_packet(const Packets::Retry& in,
-                                          uint8_t* out) {
-    return EncodingResult();
+                                          uint8_t*& out) {
+    size_t len = in.byte_size();
+
+    return {true, len};
+}
+
+inline EncodingResult decode_retry_packet(uint8_t* in, size_t in_len,
+                                          Packets::Initial& out) {
+    return {true, in_len};
 }
 
 inline EncodingResult encode_short_header(const Packets::ShortHeader& in,
-                                          uint8_t* out) {
-    return EncodingResult();
+                                          uint8_t*& out) {
+    size_t len = in.byte_size();
+
+    return {true, len};
+}
+
+inline EncodingResult decode_short_header(uint8_t* in, size_t in_len,
+                                          Packets::Initial& out) {
+    return {true, in_len};
 }
 
 }  // namespace zclp_encoding
