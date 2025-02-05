@@ -20,7 +20,25 @@
 
     ///-\\\///-\\\///-\\\           ///-\\\///-\\\///-\\\
     \\\-///\\\-///\\\-///           \\\-///\\\-///\\\-///
+
+    Bits	      Binary Mask	     Hex Mask	   Decimal Mask
+    1-bit	      00000001	         0x01	       1
+    2-bit	      00000011	         0x03	       3
+    3-bit	      00000111	         0x07	       7
+    4-bit	      00001111	         0x0F	       15
+    5-bit	      00011111	         0x1F	       31
+    6-bit	      00111111	         0x3F	       63
+    7-bit	      01111111	         0x7F	       127
+    8-bit	      11111111	         0xFF	       255
 */
+
+template<class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
 
 struct VariableLengthInteger {
   private:
@@ -32,7 +50,7 @@ struct VariableLengthInteger {
 
     explicit VariableLengthInteger(uint64_t val) { *this = val; }
 
-    size_t size() const { return pow(2, len); }
+    size_t byte_size() const { return pow(2, len); }
 
     VariableLengthInteger& operator=(uint64_t val) {
         uint8_t required_len;
@@ -62,21 +80,27 @@ struct VariableLengthInteger {
 namespace Frames {
 struct Padding {
     VariableLengthInteger type;  // 0
+    size_t byte_size() const { return type.byte_size(); }
 };
 
 struct Ping {
     VariableLengthInteger type;  // 1
+    size_t byte_size() const { return type.byte_size(); }
 };
 
 struct AckRange {
     VariableLengthInteger gap;    // 1
     VariableLengthInteger range;  // 1
+    size_t byte_size() const { return gap.byte_size() + range.byte_size(); }
 };
 
 struct EcnCount {
     VariableLengthInteger ect0;
     VariableLengthInteger ect1;
     VariableLengthInteger ecnce;
+    size_t byte_size() const {
+        return ect0.byte_size() + ect1.byte_size() + ecnce.byte_size();
+    }
 };
 
 struct Ack {
@@ -86,6 +110,18 @@ struct Ack {
     VariableLengthInteger range_count;
     std::vector<AckRange> ranges;
     std::optional<EcnCount> ecn_count;  // FT.Value == 3
+
+    size_t byte_size() const {
+        size_t ranges_size = 0;
+        for (auto range : ranges)
+            ranges_size += range.byte_size();
+
+        if (ecn_count.has_value())
+            ranges_size += ecn_count.value().byte_size();
+
+        return type.byte_size() + largest_ack_num.byte_size()
+            + delay.byte_size() + range_count.byte_size() + ranges_size;
+    }
 };
 
 struct ResetStream {
@@ -93,12 +129,22 @@ struct ResetStream {
     VariableLengthInteger stream_id;
     VariableLengthInteger error_code;
     VariableLengthInteger final_size;
+
+    size_t byte_size() const {
+        return type.byte_size() + stream_id.byte_size() + error_code.byte_size()
+            + final_size.byte_size();
+    }
 };
 
 struct StopSending {
     VariableLengthInteger type;  // 5;
     VariableLengthInteger stream_id;
     VariableLengthInteger error_code;
+
+    size_t byte_size() const {
+        return type.byte_size() + stream_id.byte_size()
+            + error_code.byte_size();
+    }
 };
 
 struct Crypto {
@@ -106,12 +152,21 @@ struct Crypto {
     VariableLengthInteger offset;
     VariableLengthInteger length;
     uint8_t* data;
+
+    size_t byte_size() const {
+        return type.byte_size() + offset.byte_size() + length.byte_size()
+            + length();
+    }
 };
 
 struct NewToken {
     VariableLengthInteger type;  // 7;
     VariableLengthInteger length;
     uint8_t* token;
+
+    size_t byte_size() const {
+        return type.byte_size() + length.byte_size() + length();
+    }
 };
 
 struct Stream {
@@ -123,62 +178,102 @@ struct Stream {
     VariableLengthInteger stream_id;
     VariableLengthInteger length;
     uint8_t* stream_data;
+
+    size_t byte_size() const {
+        return 1 + stream_id.byte_size() + length.byte_size() + length();
+    }
 };
 
 struct MaxData {
     VariableLengthInteger type;  // 16
     VariableLengthInteger max_data;
+
+    size_t byte_size() const { return type.byte_size() + max_data.byte_size(); }
 };
 
 struct MaxStreamData {
     VariableLengthInteger type;  // 17
     VariableLengthInteger stream_id;
     VariableLengthInteger max_stream_data;
+
+    size_t byte_size() const {
+        return type.byte_size() + stream_id.byte_size()
+            + max_stream_data.byte_size();
+    }
 };
 
 struct MaxStreams {
     VariableLengthInteger type;  // 18 || 19
     VariableLengthInteger max_streams;
+
+    size_t byte_size() const {
+        return type.byte_size() + max_streams.byte_size();
+    }
 };
 
 struct DataBlocked {
     VariableLengthInteger type;  // 20
     VariableLengthInteger data_limit;
+
+    size_t byte_size() const {
+        return type.byte_size() + data_limit.byte_size();
+    }
 };
 
 struct StreamDataBlocked {
     VariableLengthInteger type;  // 21
     VariableLengthInteger stream_id;
     VariableLengthInteger stream_data_limit;
+
+    size_t byte_size() const {
+        return type.byte_size() + stream_id.byte_size()
+            + stream_data_limit.byte_size();
+    }
 };
 
 struct StreamsBlocked {
     VariableLengthInteger type;  // 22 || 23
     VariableLengthInteger stream_limit;
+
+    size_t byte_size() const {
+        return type.byte_size() + stream_limit.byte_size();
+    }
 };
 
 struct NewConnectionId {
     VariableLengthInteger type;  // 24
     VariableLengthInteger sequence_number;
     VariableLengthInteger retire_prior_to;
-    uint8_t length;  // 1 >= 20? => FRAME_ENCODING_ERROR
-    uint8_t connection_id;
+    uint32_t connection_id;
     uint8_t stateless_reset_token[16];
+
+    size_t byte_size() const {
+        return type.byte_size() + sequence_number.byte_size()
+            + retire_prior_to.byte_size() + 4 + 16;
+    }
 };
 
 struct RetireConnectionId {
     VariableLengthInteger type;  // 25
     VariableLengthInteger sequence_number;
+
+    size_t byte_size() const {
+        return type.byte_size() + sequence_number.byte_size();
+    }
 };
 
 struct PathChallange {
     VariableLengthInteger type;  // 26
     uint64_t data;
+
+    size_t byte_size() const { return type.byte_size() + 8; }
 };
 
 struct PathResponse {
     VariableLengthInteger type;  // 27
     uint64_t data;
+
+    size_t byte_size() const { return type.byte_size() + 8; }
 };
 
 struct ConnectionClose {
@@ -186,11 +281,18 @@ struct ConnectionClose {
     VariableLengthInteger error;
     VariableLengthInteger frame_type;
     VariableLengthInteger phrase_len;
-    uint8_t phrase;
+    uint8_t* phrase;
+
+    size_t byte_size() const {
+        return type.byte_size() + error.byte_size() + frame_type.byte_size()
+            + phrase_len.byte_size();
+    }
 };
 
 struct HandShakeDone {
     VariableLengthInteger type;  // 30
+
+    size_t byte_size() const { return type.byte_size(); }
 };
 
 using FrameVariant =
@@ -199,6 +301,63 @@ using FrameVariant =
                  StreamDataBlocked, StreamsBlocked, NewConnectionId,
                  RetireConnectionId, PathChallange, PathResponse,
                  ConnectionClose, HandShakeDone>;
+
+inline size_t frame_size(const Frames::FrameVariant frame) {
+    return std::visit(
+        overloaded{
+            [](const Frames::Padding& f) -> size_t { return f.byte_size(); },
+            [](const Frames::Ping& f) -> size_t { return f.byte_size(); },
+            [](const Frames::Ack& f) -> size_t { return f.byte_size(); },
+            [](const Frames::ResetStream& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::StopSending& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::Crypto& f) -> size_t { return f.byte_size(); },
+            [](const Frames::NewToken& f) -> size_t { return f.byte_size(); },
+            [](const Frames::Stream& f) -> size_t { return f.byte_size(); },
+            [](const Frames::MaxData& f) -> size_t { return f.byte_size(); },
+            [](const Frames::MaxStreamData& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::MaxStreams& f) -> size_t { return f.byte_size(); },
+            [](const Frames::DataBlocked& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::StreamDataBlocked& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::StreamsBlocked& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::NewConnectionId& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::RetireConnectionId& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::PathChallange& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::PathResponse& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::ConnectionClose& f) -> size_t {
+                return f.byte_size();
+            },
+            [](const Frames::HandShakeDone& f) -> size_t {
+                return f.byte_size();
+            }},
+        frame);
+}
+
+inline size_t frame_payload_size(std::vector<FrameVariant> payload) {
+    size_t size = 0;
+    for (auto x : payload)
+        size += frame_size(x);
+    return size;
+}
 }  // namespace Frames
 
 namespace Packets {
@@ -216,7 +375,7 @@ struct StatelessReset {
             1 byte HF && FBs
             N bytes unpredictable_bits.size()
         */
-        return 16 + 1 + unpredictable_bits.size();
+        return 16 + 1 + unpredictable_bits.byte_size();
     }
 };
 
@@ -235,7 +394,7 @@ struct VersionNegotiation {
             source_connection_id
             4 * N bytes supported_versions
         */
-        return 15 + 4 * supported_versions.size();
+        return 13 + 4 * supported_versions.size();
     }
 };
 
@@ -244,10 +403,19 @@ struct LongHeader {
     uint8_t fixed_bit : 1;
     uint8_t packet_type : 2;
     uint8_t reserved_bits : 2;
-    uint8_t pakcet_number_length : 2;
+    uint8_t packet_number_length : 2;
     uint32_t version_id;
     uint32_t destination_connection_id;
     uint32_t source_connection_id;
+
+    size_t byte_size() const {
+        /*
+            1 byte - ..version_id
+            12 bytes version_id + destination_connection_id +
+           source_connection_id
+        */
+        return 13;
+    }
 };
 
 struct ProtectedLongHeader {
@@ -258,35 +426,65 @@ struct ProtectedLongHeader {
     uint32_t version_id;
     uint32_t destination_connection_id;
     uint32_t source_connection_id;
+
+    size_t byte_size() const {
+        /*
+            1 byte - ..version_id
+            12 bytes version_id + destination_connection_id +
+           source_connection_id
+        */
+        return 13;
+    }
 };
 
 struct Initial {
     LongHeader header;
+
+    // token length in bytes token_length()
     VariableLengthInteger token_length;
     uint8_t* token;
+
+    // The length of the remainder of the packet in bytes length()
     VariableLengthInteger length;
     uint8_t packet_number : 3;
     std::vector<Frames::FrameVariant> payload;  // Frames
+
+    size_t byte_size() const {
+        return header.byte_size() + token_length() + length();
+    }
 };
 
 struct ZeroRTT {
     LongHeader header;
-    VariableLengthInteger token_length;
+    VariableLengthInteger length;
     uint8_t packet_number : 3;
     std::vector<Frames::FrameVariant> payload;  // Frames
+
+    size_t byte_size() const { return header.byte_size() + length(); }
 };
 
 struct HandShake {
     LongHeader header;
-    VariableLengthInteger token_length;
+    VariableLengthInteger length;
     uint8_t packet_number : 3;
     std::vector<Frames::FrameVariant> payload;  // Frames
+
+    size_t byte_size() const { return header.byte_size() + length(); }
 };
 
 struct Retry {
     LongHeader header;
     uint8_t* token;
     uint8_t integrity_tag[16];
+
+    size_t byte_size() const {
+        /*
+            token len external
+            ||
+            Retry packet size - header - integrity_tag size
+        */
+        return header.byte_size() + 16;
+    }
 };
 
 struct ShortHeader {
@@ -299,6 +497,13 @@ struct ShortHeader {
     uint32_t destination_connection;
     uint8_t packet_number : 3;
     std::vector<Frames::FrameVariant> payload;  // Frames
+
+    size_t byte_size() const {
+        /*
+
+        */
+        return 2 + 4 + Frames::frame_payload_size(payload);
+    }
 };
 
 }  // namespace Packets
