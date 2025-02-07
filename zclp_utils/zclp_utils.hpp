@@ -63,10 +63,6 @@ inline bool is_short_header(uint8_t first_byte) {
 }  // namespace zclp_parsing
 
 namespace zclp_encoding {
-struct EncodingResult {
-    bool success;
-    size_t len;
-};
 
 inline size_t get_vl_len(const uint8_t* in) {
     uint8_t first_byte = in[0];
@@ -144,7 +140,7 @@ inline EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
     shift_right(in, in_len, 6);
 
     VariableLengthInteger vl_out;
-    decode_vl_integer(in + 1, vl_out);
+    zclp_encoding::decode_vl_integer(in + 1, vl_out);
 
     out.unpredictable_bits = vl_out;
 
@@ -336,6 +332,19 @@ inline EncodingResult encode_initial_packet(const Packets::Initial& in,
 
 inline EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
                                             Packets::Initial& out) {
+    size_t offset = 0;
+    auto d_lheader = decode_long_header(in, out.header.byte_size(), out.header);
+    offset += out.header.byte_size();
+    if (d_lheader.success)
+        return {false, offset};
+
+    uint8_t* d_token_len_ref = in + offset;
+    auto d_token_len =
+        zclp_encoding::decode_vl_integer(d_token_len_ref, out.token_length);
+    offset += d_token_len.len;
+    if (d_token_len.success)
+        return {false, offset};
+
     return {true, in_len};
 }
 
