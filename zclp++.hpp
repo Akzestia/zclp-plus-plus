@@ -98,9 +98,9 @@ namespace Frames {
 struct Padding {
     VariableLengthInteger type;  // 0
     size_t byte_size() const { return type.byte_size(); }
-    static bool decode(uint8_t* in, Padding& out) {
+    static EncodingResult decode(uint8_t* in, Padding& out) {
         auto _ = decode_vl_integer(in, out.type);
-        return _.success;
+        return {_.success, _.len};
     };
 };
 
@@ -108,9 +108,9 @@ struct Ping {
     VariableLengthInteger type;  // 1
     size_t byte_size() const { return type.byte_size(); }
 
-    static bool decode(uint8_t* in, Ping& out) {
+    static EncodingResult decode(uint8_t* in, Ping& out) {
         auto _ = decode_vl_integer(in, out.type);
-        return _.success;
+        return {_.success, _.len};
     };
 };
 
@@ -118,6 +118,23 @@ struct AckRange {
     VariableLengthInteger gap;    // 1
     VariableLengthInteger range;  // 1
     size_t byte_size() const { return gap.byte_size() + range.byte_size(); }
+
+    static EncodingResult decode(uint8_t* in, AckRange& out) {
+        size_t offset = 0;
+        auto _ = decode_vl_integer(in, out.gap);
+        if (!_.success)
+            return {false, _.len};
+
+        offset += _.len;
+        uint8_t* range_ref = in + offset;
+        auto __ = decode_vl_integer(range_ref, out.range);
+        if (!__.success)
+            return {false, __.len + offset};
+        range_ref = nullptr;
+        offset += __.len;
+
+        return {true, offset};
+    };
 };
 
 struct EcnCount {
@@ -126,6 +143,32 @@ struct EcnCount {
     VariableLengthInteger ecnce;
     size_t byte_size() const {
         return ect0.byte_size() + ect1.byte_size() + ecnce.byte_size();
+    }
+
+    static EncodingResult decode(uint8_t* in, EcnCount& out) {
+        size_t offset = 0;
+
+        uint8_t* ect0_ref = in + offset;
+        auto res = decode_vl_integer(ect0_ref, out.ect0);
+        if (!res.success)
+            return {false, res.len + offset};
+        offset += res.len;
+        ect0_ref = nullptr;
+
+        uint8_t* ect1_ref = in + offset;
+        auto res2 = decode_vl_integer(ect1_ref, out.ect1);
+        if (!res2.success)
+            return {false, res.len + offset};
+        offset += res2.len;
+        ect1_ref = nullptr;
+
+        uint8_t* ecnce_ref = in + offset;
+        auto res3 = decode_vl_integer(ecnce_ref, out.ecnce);
+        if (!res3.success)
+            return {false, res.len + offset};
+        offset += res3.len;
+        ecnce_ref = nullptr;
+        return {true, offset};
     }
 };
 
@@ -149,27 +192,56 @@ struct Ack {
             + delay.byte_size() + range_count.byte_size() + ranges_size;
     }
 
-    static bool decode(uint8_t* in, Ack& out) {
+    static EncodingResult decode(uint8_t* in, Ack& out) {
         size_t offset = 0;
-        VariableLengthInteger FT;
-        auto FT_RES = decode_vl_integer(in, FT);
+        auto FT_RES = decode_vl_integer(in, out.type);
         if (!FT_RES.success)
-            return false;
+            return {false, FT_RES.len};
         offset += FT_RES.len;
-        out.type = FT;
-        VariableLengthInteger vl_lan, vl_delay, vl_range_count;
         uint8_t* ref_lan = in + offset;
-        auto vl_lan_res = decode_vl_integer(ref_lan, vl_lan);
+        auto vl_lan_res = decode_vl_integer(ref_lan, out.largest_ack_num);
         if (!vl_lan_res.success)
-            return false;
+            return {false, vl_lan_res.len + offset};
         offset += vl_lan_res.len;
+        ref_lan = nullptr;
 
         uint8_t* ref_delay = in + offset;
-        auto vl_delay_res = decode_vl_integer(ref_delay, vl_delay);
+        auto vl_delay_res = decode_vl_integer(ref_delay, out.delay);
         if (!vl_delay_res.success)
-            return false;
+            return {false, vl_lan_res.len + offset};
         offset += vl_delay_res.len;
-        return true;
+        ref_delay = nullptr;
+
+        uint8_t* ref_range_count = in + offset;
+        auto vl_range_count_res =
+            decode_vl_integer(ref_range_count, out.range_count);
+        if (!vl_range_count_res.success)
+            return {false, vl_lan_res.len + offset};
+        offset += vl_range_count_res.len;
+        ref_range_count = nullptr;
+
+        uint8_t* ranges_ref = in + offset;
+        for (int i = 0; i < out.range_count; i++) {
+            AckRange ack_range_out;
+            auto _ = AckRange::decode(ranges_ref, ack_range_out);
+            if (!_.success)
+                return {false, _.len + offset};
+            out.ranges.push_back(ack_range_out);
+            offset += _.len;
+            ranges_ref = in + offset;
+        }
+        ranges_ref = nullptr;
+
+        if (out.type == 3) {
+            uint8_t* ecn_ref = in + offset;
+            auto _ = EcnCount::decode(ecn_ref, out.ecn_count.value());
+            if (!_.success)
+                return {false, _.len + offset};
+            ecn_ref = nullptr;
+            offset += _.len;
+        }
+
+        return {true, offset};
     };
 };
 
@@ -437,20 +509,20 @@ inline FrameVariant* get_frame_type(uint8_t* in, size_t len) {
         */
     case 0: {
         Padding out;
-        if (!Padding::decode(in, out))
+        if (!Padding::decode(in, out).success)
             return nullptr;
         return new FrameVariant(out);
     } break;
     case 1: {
         Ping out;
-        if (!Ping::decode(in, out))
+        if (!Ping::decode(in, out).success)
             return nullptr;
         return new FrameVariant(out);
     } break;
     case 2:
     case 3: {
         Ack out;
-        if (!Ack::decode(in, out))
+        if (!Ack::decode(in, out).success)
             return nullptr;
         return new FrameVariant(out);
     } break;
