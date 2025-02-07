@@ -40,6 +40,11 @@ struct overloaded : Ts... {
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
+struct EncodingResult {
+    bool success;
+    size_t len;
+};
+
 struct VariableLengthInteger {
   private:
     uint8_t len : 2;
@@ -77,15 +82,36 @@ struct VariableLengthInteger {
     uint8_t len_() const { return len; }
 };
 
+struct StatelessReset;
+struct VersionNegotiation;
+struct LongHeader;
+struct ProtectedLongHeader;
+struct Initial;
+struct ZeroRTT;
+struct HandShake;
+struct Retry;
+struct ShortHeader;
+
+EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out);
+
 namespace Frames {
 struct Padding {
     VariableLengthInteger type;  // 0
     size_t byte_size() const { return type.byte_size(); }
+    static bool decode(uint8_t* in, Padding& out) {
+        auto _ = decode_vl_integer(in, out.type);
+        return _.success;
+    };
 };
 
 struct Ping {
     VariableLengthInteger type;  // 1
     size_t byte_size() const { return type.byte_size(); }
+
+    static bool decode(uint8_t* in, Ping& out) {
+        auto _ = decode_vl_integer(in, out.type);
+        return _.success;
+    };
 };
 
 struct AckRange {
@@ -122,6 +148,29 @@ struct Ack {
         return type.byte_size() + largest_ack_num.byte_size()
             + delay.byte_size() + range_count.byte_size() + ranges_size;
     }
+
+    static bool decode(uint8_t* in, Ack& out) {
+        size_t offset = 0;
+        VariableLengthInteger FT;
+        auto FT_RES = decode_vl_integer(in, FT);
+        if (!FT_RES.success)
+            return false;
+        offset += FT_RES.len;
+        out.type = FT;
+        VariableLengthInteger vl_lan, vl_delay, vl_range_count;
+        uint8_t* ref_lan = in + offset;
+        auto vl_lan_res = decode_vl_integer(ref_lan, vl_lan);
+        if (!vl_lan_res.success)
+            return false;
+        offset += vl_lan_res.len;
+
+        uint8_t* ref_delay = in + offset;
+        auto vl_delay_res = decode_vl_integer(ref_delay, vl_delay);
+        if (!vl_delay_res.success)
+            return false;
+        offset += vl_delay_res.len;
+        return true;
+    };
 };
 
 struct ResetStream {
@@ -134,6 +183,7 @@ struct ResetStream {
         return type.byte_size() + stream_id.byte_size() + error_code.byte_size()
             + final_size.byte_size();
     }
+    static bool decode(uint8_t* in, ResetStream& out);
 };
 
 struct StopSending {
@@ -145,6 +195,7 @@ struct StopSending {
         return type.byte_size() + stream_id.byte_size()
             + error_code.byte_size();
     }
+    static bool decode(uint8_t* in, StopSending& out);
 };
 
 struct Crypto {
@@ -157,6 +208,7 @@ struct Crypto {
         return type.byte_size() + offset.byte_size() + length.byte_size()
             + length();
     }
+    static bool decode(uint8_t* in, Crypto& out);
 };
 
 struct NewToken {
@@ -167,6 +219,7 @@ struct NewToken {
     size_t byte_size() const {
         return type.byte_size() + length.byte_size() + length();
     }
+    static bool decode(uint8_t* in, NewToken& out);
 };
 
 struct Stream {
@@ -182,6 +235,7 @@ struct Stream {
     size_t byte_size() const {
         return 1 + stream_id.byte_size() + length.byte_size() + length();
     }
+    static bool decode(uint8_t* in, Stream& out);
 };
 
 struct MaxData {
@@ -189,6 +243,7 @@ struct MaxData {
     VariableLengthInteger max_data;
 
     size_t byte_size() const { return type.byte_size() + max_data.byte_size(); }
+    static bool decode(uint8_t* in, MaxData& out);
 };
 
 struct MaxStreamData {
@@ -200,6 +255,7 @@ struct MaxStreamData {
         return type.byte_size() + stream_id.byte_size()
             + max_stream_data.byte_size();
     }
+    static bool decode(uint8_t* in, MaxStreamData& out);
 };
 
 struct MaxStreams {
@@ -209,6 +265,7 @@ struct MaxStreams {
     size_t byte_size() const {
         return type.byte_size() + max_streams.byte_size();
     }
+    static bool decode(uint8_t* in, MaxStreams& out);
 };
 
 struct DataBlocked {
@@ -218,6 +275,7 @@ struct DataBlocked {
     size_t byte_size() const {
         return type.byte_size() + data_limit.byte_size();
     }
+    static bool decode(uint8_t* in, DataBlocked& out);
 };
 
 struct StreamDataBlocked {
@@ -229,6 +287,7 @@ struct StreamDataBlocked {
         return type.byte_size() + stream_id.byte_size()
             + stream_data_limit.byte_size();
     }
+    static bool decode(uint8_t* in, StreamDataBlocked& out);
 };
 
 struct StreamsBlocked {
@@ -238,6 +297,7 @@ struct StreamsBlocked {
     size_t byte_size() const {
         return type.byte_size() + stream_limit.byte_size();
     }
+    static bool decode(uint8_t* in, StreamsBlocked& out);
 };
 
 struct NewConnectionId {
@@ -251,6 +311,7 @@ struct NewConnectionId {
         return type.byte_size() + sequence_number.byte_size()
             + retire_prior_to.byte_size() + 4 + 16;
     }
+    static bool decode(uint8_t* in, NewConnectionId& out);
 };
 
 struct RetireConnectionId {
@@ -260,6 +321,7 @@ struct RetireConnectionId {
     size_t byte_size() const {
         return type.byte_size() + sequence_number.byte_size();
     }
+    static bool decode(uint8_t* in, RetireConnectionId& out);
 };
 
 struct PathChallange {
@@ -267,6 +329,7 @@ struct PathChallange {
     uint64_t data;
 
     size_t byte_size() const { return type.byte_size() + 8; }
+    static bool decode(uint8_t* in, PathChallange& out);
 };
 
 struct PathResponse {
@@ -274,6 +337,7 @@ struct PathResponse {
     uint64_t data;
 
     size_t byte_size() const { return type.byte_size() + 8; }
+    static bool decode(uint8_t* in, PathResponse& out);
 };
 
 struct ConnectionClose {
@@ -287,12 +351,14 @@ struct ConnectionClose {
         return type.byte_size() + error.byte_size() + frame_type.byte_size()
             + phrase_len.byte_size();
     }
+    static bool decode(uint8_t* in, ConnectionClose& out);
 };
 
 struct HandShakeDone {
     VariableLengthInteger type;  // 30
 
     size_t byte_size() const { return type.byte_size(); }
+    static bool decode(uint8_t* in, HandShakeDone& out);
 };
 
 using FrameVariant =
@@ -357,6 +423,152 @@ inline size_t frame_payload_size(std::vector<FrameVariant> payload) {
     for (auto x : payload)
         size += frame_size(x);
     return size;
+}
+
+inline FrameVariant* get_frame_type(uint8_t* in, size_t len) {
+    VariableLengthInteger FT;
+    auto FT_RES = decode_vl_integer(in, FT);
+    if (!FT_RES.success)
+        return nullptr;
+    switch (FT) {
+        /*
+            Each Frame has it's own ::decode(), method which is responsible for
+            decoding frame from raw bytes.
+        */
+    case 0: {
+        Padding out;
+        if (!Padding::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 1: {
+        Ping out;
+        if (!Ping::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 2:
+    case 3: {
+        Ack out;
+        if (!Ack::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 4: {
+        ResetStream out;
+        if (!ResetStream::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 5: {
+        StopSending out;
+        if (!StopSending::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 6: {
+        Crypto out;
+        if (!Crypto::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 7: {
+        NewToken out;
+        if (!NewToken::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 16: {
+        MaxData out;
+        if (!MaxData::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 17: {
+        MaxStreamData out;
+        if (!MaxStreamData::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 18:
+    case 19: {
+        MaxStreams out;
+        if (!MaxStreams::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 20: {
+        DataBlocked out;
+        if (!DataBlocked::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 21: {
+        StreamDataBlocked out;
+        if (!StreamDataBlocked::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 22:
+    case 23: {
+        StreamsBlocked out;
+        if (!StreamsBlocked::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 24: {
+        NewConnectionId out;
+        if (!NewConnectionId::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 25: {
+        RetireConnectionId out;
+        if (!RetireConnectionId::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 26: {
+        PathChallange out;
+        if (!PathChallange::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+    case 27: {
+        PathResponse out;
+        if (!PathResponse::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 28:
+    case 29: {
+        ConnectionClose out;
+        if (!ConnectionClose::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    case 30: {
+        HandShakeDone out;
+        if (!HandShakeDone::decode(in, out))
+            return nullptr;
+        return new FrameVariant(out);
+    } break;
+
+    // Stream Frames
+    default: {
+        Stream out;
+        return new FrameVariant(out);
+    }
+    };
 }
 }  // namespace Frames
 
