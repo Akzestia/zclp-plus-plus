@@ -4,6 +4,7 @@
 #include <memory.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -1193,6 +1194,22 @@ struct ShortHeader {
 };
 
 }  // namespace Packets
+
+namespace Structs {
+
+enum C_Type : uint8_t {
+    authentication = 0,
+    client_request = 1,
+    p2p = 2,
+};
+
+struct Connection {
+    uint32_t id;
+    C_Type type;
+    uint32_t params;
+    std::atomic<bool> alive;
+};
+}  // namespace Structs
 
 namespace Protection {
 /*
