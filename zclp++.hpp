@@ -1211,20 +1211,4 @@ struct Connection {
 };
 }  // namespace Structs
 
-namespace Protection {
-/*
-func remove_protection(from: Protected Packet) -> Unprotected Packet:
-   remove header protection from protected_packet
-   remove packet protection from protected_packet
-   construct appropriate packet type
-   return Unprotected Packet
-
-   func apply_protection(to: Unprotected Packet)
-                   -> Protected Packet:
-      apply packet protection to payload
-      apply header protection to first_byte and packet_number
-      construct appropriate Protected Packet based on first_byte
-      return Protected Packet
-*/
-}
 #endif  // ZCLP_PLUS_PLUS
