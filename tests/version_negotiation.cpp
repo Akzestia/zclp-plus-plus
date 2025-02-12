@@ -37,7 +37,7 @@ TEST(VersionNegotiationTest, EncodeDecode) {
     using namespace Packets;
 
     for (int i = 0; i < 1000000; i++) {
-        VersionNegotiation vn;
+        Packets::VersionNegotiation vn;
         vn.header_form = getRandomBit();
         vn.unused = getRandomBit() & 0x3F;  // Ensure it's a 6-bit value
         vn.version_id = getRandomVersionID();
@@ -51,7 +51,7 @@ TEST(VersionNegotiationTest, EncodeDecode) {
         ASSERT_TRUE(enc_res.success);
         ASSERT_GT(enc_res.len, 0u);
 
-        VersionNegotiation vn_decoded;
+        Packets::VersionNegotiation vn_decoded;
         auto dec_res = zclp_encoding::decode_version_negotiation(
             encoded_buffer, enc_res.len, vn_decoded);
         ASSERT_TRUE(dec_res.success);
