@@ -22,7 +22,7 @@ int getRandomBit() {
 TEST(StatelessResetTest, EncodeDecode) {
     using namespace Packets;
     for (int i = 0; i < 1000000; i++) {
-        StatelessReset st;
+        Packets::StatelessReset st;
         zclp_test_heplers::fill_stateless_reset(st);
         st.unpredictable_bits = getRandomValidValue();
         st.header_form = getRandomBit();
@@ -32,7 +32,7 @@ TEST(StatelessResetTest, EncodeDecode) {
             zclp_encoding::encode_stateless_reset(st, encoded_buffer);
         ASSERT_TRUE(enc_res.success);
         ASSERT_GT(enc_res.len, 0u);
-        StatelessReset st_decoded;
+        Packets::StatelessReset st_decoded;
         auto dec_res = zclp_encoding::decode_stateless_reset(
             encoded_buffer, enc_res.len, st_decoded);
         ASSERT_TRUE(dec_res.success);
