@@ -44,7 +44,7 @@ TEST(LongHeaderTest, EncodeDecode) {
     using namespace Packets;
 
     for (int i = 0; i < 1000000; i++) {
-        LongHeader lh;
+        Packets::LongHeader lh;
         lh.header_form = getRandomBit();
         lh.fixed_bit = getRandomBit();
         lh.packet_type = getRandomPacketType();
@@ -59,7 +59,7 @@ TEST(LongHeaderTest, EncodeDecode) {
         ASSERT_TRUE(enc_res.success);
         ASSERT_GT(enc_res.len, 0u);
 
-        LongHeader lh_decoded;
+        Packets::LongHeader lh_decoded;
         auto dec_res = zclp_encoding::decode_long_header(
             encoded_buffer, enc_res.len, lh_decoded);
         ASSERT_TRUE(dec_res.success);
