@@ -1,12 +1,13 @@
 ### Cluster Mask
 
 ```cpp
-struct Connection {
-    uint32_t id;
-    C_Type type;
-    uint32_t params;
-    std::atomic<bool> alive;
-    std::optional<std::string> destination_cluster_mask;
+struct ClusterMask {
+    VariableLengthInteger type;  // 31
+    VariableLengthInteger mask_length;
+    uint8_t* mask;
+    size_t byte_size() const {
+        return type.byte_size() + mask_length.byte_size() + mask_length();
+    }
 };
 ```
 <br/>
