@@ -1,6 +1,7 @@
 #ifndef ZCLP_UTILS
 #define ZCLP_UTILS
 #include <arpa/inet.h>
+#include <openssl/aes.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
@@ -8,7 +9,7 @@
 #include <openssl/rand.h>
 #include <sys/types.h>
 
-#include <cmath>
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -719,6 +720,119 @@ struct zclp_tls_arena {
     }
 };
 
+constexpr size_t PACKET_NUMBER_MAX_LENGTH = 4;
+constexpr size_t SAMPLE_LENGTH = 16;
+constexpr size_t MASK_LENGTH = 5;
+
+struct MaskResult {
+    bool success;
+    std::array<uint8_t, MASK_LENGTH> mask;
+
+    MaskResult() : success(false), mask({}) {}
+    MaskResult(const MaskResult& other)
+        : success(other.success), mask(other.mask) {}
+    MaskResult(bool success, std::array<uint8_t, MASK_LENGTH> mask)
+        : success(success), mask(mask) {}
+};
+
+constexpr std::array<uint8_t, 20> quic_v1_salt = {
+    0xef, 0x4f, 0x5f, 0x57, 0x84, 0x90, 0xa3, 0x68, 0x9c, 0x76,
+    0x6b, 0xee, 0xfd, 0x4a, 0x2a, 0xe6, 0x0a, 0x44, 0x9f, 0x17};
+
+inline MaskResult generate_mask(const std::array<uint8_t, 16>& hp_key,
+                                const std::vector<uint8_t>& sample) {
+    if (sample.size() < SAMPLE_LENGTH) {
+        return MaskResult();
+    }
+
+    std::array<uint8_t, MASK_LENGTH> mask = {};
+    std::array<uint8_t, 16> counter_block = {};
+
+    std::memcpy(counter_block.data(), sample.data(),
+                std::min(sample.size(), counter_block.size()));
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) {
+        EVP_CIPHER_CTX_free(ctx);
+        return MaskResult();
+    }
+
+    if (EVP_EncryptInit_ex(ctx, EVP_aes_128_ctr(), nullptr, hp_key.data(),
+                           counter_block.data())
+        != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return MaskResult();
+    }
+
+    int outlen = 0;
+    std::array<uint8_t, 16> zeros = {};
+    if (EVP_EncryptUpdate(ctx, mask.data(), &outlen, zeros.data(), MASK_LENGTH)
+        != 1) {
+        EVP_CIPHER_CTX_free(ctx);
+        return MaskResult();
+    }
+
+    EVP_EncryptFinal_ex(ctx, nullptr, &outlen);
+    EVP_CIPHER_CTX_free(ctx);
+    return MaskResult({true, mask});
+}
+
+inline bool apply_header_protection(std::vector<uint8_t>& header,
+                                    const std::vector<uint8_t>& sample,
+                                    const std::array<uint8_t, 16>& hp_key) {
+    if (header.empty())
+        return false;
+
+    auto result = generate_mask(hp_key, sample);
+    if (!result.success)
+        return false;
+    auto mask = result.mask;
+
+    bool is_long_header = (header[0] & 0x80) != 0;
+
+    if (is_long_header)
+        header[0] ^= (mask[0] & 0x0F);
+    else
+        header[0] ^= (mask[0] & 0x1F);
+
+    for (size_t i = 0; i < PACKET_NUMBER_MAX_LENGTH && (i + 1) < header.size();
+         i++)
+        header[i + 1] ^= mask[i + 1];
+    return true;
+}
+
+inline bool remove_header_protection(std::vector<uint8_t>& header,
+                                     const std::vector<uint8_t>& sample,
+                                     const std::array<uint8_t, 16>& hp_key) {
+    return apply_header_protection(header, sample, hp_key);
+}
+
+inline std::vector<uint8_t> serialize_long_header(
+    const Packets::LongHeader& hdr) {
+    std::vector<uint8_t> data(hdr.byte_size());
+    data[0] = (hdr.header_form << 7) | (hdr.fixed_bit << 6)
+        | (hdr.packet_type << 4) | (hdr.reserved_bits << 2)
+        | hdr.packet_number_length;
+    std::memcpy(&data[1], &hdr.version_id, sizeof(hdr.version_id));
+    std::memcpy(&data[5], &hdr.destination_connection_id,
+                sizeof(hdr.destination_connection_id));
+    std::memcpy(&data[9], &hdr.source_connection_id,
+                sizeof(hdr.source_connection_id));
+    return data;
+}
+
+inline std::vector<uint8_t> serialize_short_header(
+    const Packets::ShortHeader& hdr) {
+    std::vector<uint8_t> data(hdr.byte_size());
+    data[0] = (hdr.header_form << 7) | (hdr.fixed_bit << 6)
+        | (hdr.spin_bit << 5) | (hdr.reserved_bits << 3) | (hdr.key_phase << 2)
+        | hdr.packet_number_length;
+    std::memcpy(&data[1], &hdr.destination_connection,
+                sizeof(hdr.destination_connection));
+    data[5] = hdr.packet_number;
+    return data;
+}
+
 }  // namespace zclp_tls
 
 namespace zclp_test_heplers {
@@ -748,5 +862,30 @@ inline void print_array(const uint8_t* data, size_t len) {
 }
 
 }  // namespace zclp_test_heplers
+
+namespace zclp_uint {
+inline std::mt19937_64 rng{std::random_device{}()};
+
+inline uint32_t u64_rand() {
+    std::uniform_int_distribution<uint64_t> dist(0, 0x3FFFFFFFFFFFFFFF);
+    return dist(rng);
+}
+
+inline uint32_t u32_rand() {
+    std::uniform_int_distribution<uint32_t> dist(0, 0x3FFFFFFF);
+    return dist(rng);
+}
+
+inline uint32_t u16_rand() {
+    std::uniform_int_distribution<uint16_t> dist(0, 0x3FFF);
+    return dist(rng);
+}
+
+inline uint32_t u8_rand() {
+    std::uniform_int_distribution<uint8_t> dist(0, 0x3F);
+    return dist(rng);
+}
+
+}  // namespace zclp_uint
 
 #endif  // ZCLP_UTILS
