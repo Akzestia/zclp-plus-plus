@@ -1,24 +1,9 @@
-#ifndef ZCLP_UTILS
-#define ZCLP_UTILS
-#include <arpa/inet.h>
-#include <openssl/aes.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
-#include <openssl/pem.h>
-#include <openssl/rand.h>
-#include <sys/types.h>
+#include "zclp_utils.h"
 
-#include <array>
-#include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <random>
 
-#include "../zclp++.hpp"
-
-inline void printu8(const uint8_t* in, size_t len) {
+void printu8(const uint8_t* in, size_t len) {
     for (size_t i = 0; i < len; i++) {
         for (int j = 7; j >= 0; j--) {
             int bit = (in[i] >> j) & 1;
@@ -29,7 +14,7 @@ inline void printu8(const uint8_t* in, size_t len) {
     printf("\n");
 }
 
-inline void shift_right(uint8_t* data, size_t len, unsigned shift) {
+void shift_right(uint8_t* data, size_t len, unsigned shift) {
     if (shift == 0 || len == 0)
         return;
     for (ssize_t i = len - 1; i >= 0; i--) {
@@ -40,7 +25,7 @@ inline void shift_right(uint8_t* data, size_t len, unsigned shift) {
     }
 }
 
-inline void shift_left(uint8_t* data, size_t len, unsigned shift) {
+void shift_left(uint8_t* data, size_t len, unsigned shift) {
     if (shift == 0 || len == 0)
         return;
     for (size_t i = 0; i < len; i++) {
@@ -53,11 +38,11 @@ inline void shift_left(uint8_t* data, size_t len, unsigned shift) {
 
 namespace zclp_parsing {
 
-inline bool is_long_header(uint8_t first_byte) {
+bool is_long_header(uint8_t first_byte) {
     return (first_byte & 0x80) == 1 && ((first_byte & 0x40) == 1);
 }
 
-inline bool is_short_header(uint8_t first_byte) {
+bool is_short_header(uint8_t first_byte) {
     return (first_byte & 0x80) == 0 && ((first_byte & 0x40) == 1);
 }
 
@@ -65,7 +50,7 @@ inline bool is_short_header(uint8_t first_byte) {
 
 namespace zclp_encoding {
 
-inline size_t get_vl_len(const uint8_t* in) {
+size_t get_vl_len(const uint8_t* in) {
     uint8_t first_byte = in[0];
     uint8_t len_indicator = first_byte >> 6;
 
@@ -83,8 +68,8 @@ inline size_t get_vl_len(const uint8_t* in) {
     }
 };
 
-inline EncodingResult encode_vl_integer(const VariableLengthInteger& in,
-                                        uint8_t*& out) {
+EncodingResult encode_vl_integer(const VariableLengthInteger& in,
+                                 uint8_t*& out) {
     size_t len = in.byte_size();
     uint64_t value = in();
     out = new uint8_t[len]();
@@ -97,9 +82,9 @@ inline EncodingResult encode_vl_integer(const VariableLengthInteger& in,
     return {true, len};
 }
 
-inline EncodingResult decode_vl_integer(uint8_t* in,
-                                        VariableLengthInteger& out) {
+EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out) {
     uint64_t value = 0;
+    printu8(in, 1);
     size_t len = get_vl_len(in);
 
     in[0] &= 0b00111111;
@@ -111,8 +96,8 @@ inline EncodingResult decode_vl_integer(uint8_t* in,
     return {true, out.byte_size()};
 }
 
-inline EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
-                                             uint8_t*& out) {
+EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
+                                      uint8_t*& out) {
     size_t len = in.byte_size();
     out = new uint8_t[len]();
 
@@ -130,8 +115,8 @@ inline EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
     return {true, len};
 }
 
-inline EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
-                                             Packets::StatelessReset& out) {
+EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
+                                      Packets::StatelessReset& out) {
     uint8_t HF = ((in[0] >> 7) & 1);
     uint8_t FB = ((in[0] >> 6) & 1);
 
@@ -154,8 +139,8 @@ inline EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
     return {true, in_len};
 }
 
-inline EncodingResult encode_version_negotiation(
-    const Packets::VersionNegotiation& in, uint8_t*& out) {
+EncodingResult encode_version_negotiation(const Packets::VersionNegotiation& in,
+                                          uint8_t*& out) {
     size_t len = in.byte_size();
     out = new uint8_t[len]();
 
@@ -179,8 +164,8 @@ inline EncodingResult encode_version_negotiation(
     return {true, len};
 }
 
-inline EncodingResult decode_version_negotiation(
-    uint8_t* in, size_t in_len, Packets::VersionNegotiation& out) {
+EncodingResult decode_version_negotiation(uint8_t* in, size_t in_len,
+                                          Packets::VersionNegotiation& out) {
     size_t offset = 1;
 
     out.header_form = ((in[0] >> 7) & 1);
@@ -209,8 +194,8 @@ inline EncodingResult decode_version_negotiation(
     return {true, in_len};
 }
 
-inline EncodingResult encode_long_header(const Packets::LongHeader& in,
-                                         uint8_t*& out) {
+EncodingResult encode_long_header(const Packets::LongHeader& in,
+                                  uint8_t*& out) {
     size_t len = in.byte_size();
     out = new uint8_t[len]();
 
@@ -230,8 +215,8 @@ inline EncodingResult encode_long_header(const Packets::LongHeader& in,
     return {true, len};
 }
 
-inline EncodingResult decode_long_header(uint8_t* in, size_t in_len,
-                                         Packets::LongHeader& out) {
+EncodingResult decode_long_header(uint8_t* in, size_t in_len,
+                                  Packets::LongHeader& out) {
     out.header_form = ((in[0] >> 7) & 1);
     out.fixed_bit = ((in[0] >> 6) & 1);
     out.packet_type = ((in[0] >> 4) & 0x03);
@@ -249,7 +234,7 @@ inline EncodingResult decode_long_header(uint8_t* in, size_t in_len,
     return {true, in_len};
 }
 
-inline EncodingResult encode_protected_long_header(
+EncodingResult encode_protected_long_header(
     const Packets::ProtectedLongHeader& in, uint8_t*& out) {
     size_t len = in.byte_size();
 
@@ -271,8 +256,8 @@ inline EncodingResult encode_protected_long_header(
     return {true, len};
 }
 
-inline EncodingResult decode_protected_long_header(
-    uint8_t* in, size_t in_len, Packets::ProtectedLongHeader& out) {
+EncodingResult decode_protected_long_header(uint8_t* in, size_t in_len,
+                                            Packets::ProtectedLongHeader& out) {
     out.header_form = ((in[0] >> 7) & 1);
     out.fixed_bit = ((in[0] >> 6) & 1);
     out.packet_type = ((in[0] >> 4) & 0x03);
@@ -289,20 +274,20 @@ inline EncodingResult decode_protected_long_header(
     return {true, in_len};
 }
 
-inline EncodingResult encode_initial_packet(const Packets::Initial& in,
-                                            uint8_t*& out) {
+EncodingResult encode_initial_packet(const Packets::Initial& in,
+                                     uint8_t*& out) {
     size_t len = in.byte_size();
     out = new uint8_t[len]();
     size_t offset = 0;
 
     auto header_encode = encode_long_header(in.header, out);
-    if (!header_encode.success)
+    if (!header_encode)
         return {false, header_encode.len + offset};
     offset += header_encode.len;
 
     uint8_t* ref_token_len = out + offset;
     auto token_len = encode_vl_integer(in.token_length, ref_token_len);
-    if (!token_len.success)
+    if (!token_len)
         return {false, token_len.len + offset};
     offset += token_len.len;
     ref_token_len = nullptr;
@@ -312,7 +297,7 @@ inline EncodingResult encode_initial_packet(const Packets::Initial& in,
 
     uint8_t* ref_len = out + offset;
     auto len_ = encode_vl_integer(in.length, ref_len);
-    if (!len_.success)
+    if (!len_)
         return {false, len_.len + offset};
     offset += len_.len;
     ref_len = nullptr;
@@ -325,75 +310,102 @@ inline EncodingResult encode_initial_packet(const Packets::Initial& in,
         offset += size;
     }
 
-    shift_left(out, len, 5);
+    uint8_t* ref_shift = out + packet_number_offset;
+    shift_left(ref_shift, in.length, 5);
     out[packet_number_offset] |= (in.packet_number << 5);
 
     return {true, len};
 }
 
-inline EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
-                                            Packets::Initial& out) {
+EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
+                                     Packets::Initial& out) {
     size_t offset = 0;
     auto d_lheader = decode_long_header(in, out.header.byte_size(), out.header);
     offset += out.header.byte_size();
-    if (d_lheader.success)
+    if (!d_lheader)
         return {false, offset};
-
     uint8_t* d_token_len_ref = in + offset;
     auto d_token_len =
         zclp_encoding::decode_vl_integer(d_token_len_ref, out.token_length);
     offset += d_token_len.len;
-    if (d_token_len.success)
+    if (!d_token_len) {
+        d_token_len_ref = nullptr;
         return {false, offset};
+    }
+    d_token_len_ref = nullptr;
 
+    uint8_t* d_token_ref = in + offset;
+    memcpy(out.token, d_token_ref, out.token_length());
+    offset += out.token_length();
+    d_token_ref = nullptr;
+
+    uint8_t* d_len_ref = in + offset;
+    auto d_len = zclp_encoding::decode_vl_integer(d_len_ref, out.length);
+    if (!d_len) {
+        d_len_ref = nullptr;
+        return {false, offset};
+    }
+    offset += d_len.len;
+    d_len_ref = nullptr;
+
+    uint8_t* d_packet_number_ref = in + offset++;
+    out.packet_number = (d_packet_number_ref[0] >> 5) & 0b111;
+    shift_right(d_packet_number_ref, out.length, 5);
+    d_packet_number_ref = nullptr;
+
+    uint8_t* d_payload_ref = in + offset;
+    auto FT = Frames::get_frame_type(d_payload_ref);
+    if (FT)
+        out.payload.push_back(FT.frame);
+
+    printf("FT type %u", FT.frame_type);
+    d_payload_ref = nullptr;
     return {true, in_len};
 }
 
-inline EncodingResult encode_0rtt_packet(const Packets::ZeroRTT& in,
-                                         uint8_t*& out) {
+EncodingResult encode_0rtt_packet(const Packets::ZeroRTT& in, uint8_t*& out) {
     size_t len = in.byte_size();
 
     return {true, len};
 }
 
-inline EncodingResult decode_0rtt_packet(uint8_t* in, size_t in_len,
-                                         Packets::ZeroRTT& out) {
+EncodingResult decode_0rtt_packet(uint8_t* in, size_t in_len,
+                                  Packets::ZeroRTT& out) {
     return {true, in_len};
 }
 
-inline EncodingResult encode_handshake_packet(const Packets::HandShake& in,
-                                              uint8_t*& out) {
+EncodingResult encode_handshake_packet(const Packets::HandShake& in,
+                                       uint8_t*& out) {
     size_t len = in.byte_size();
 
     return {true, len};
 }
 
-inline EncodingResult decode_handshake_packet(uint8_t* in, size_t in_len,
-                                              Packets::Initial& out) {
+EncodingResult decode_handshake_packet(uint8_t* in, size_t in_len,
+                                       Packets::Initial& out) {
     return {true, in_len};
 }
 
-inline EncodingResult encode_retry_packet(const Packets::Retry& in,
-                                          uint8_t*& out) {
+EncodingResult encode_retry_packet(const Packets::Retry& in, uint8_t*& out) {
     size_t len = in.byte_size();
 
     return {true, len};
 }
 
-inline EncodingResult decode_retry_packet(uint8_t* in, size_t in_len,
-                                          Packets::Initial& out) {
+EncodingResult decode_retry_packet(uint8_t* in, size_t in_len,
+                                   Packets::Initial& out) {
     return {true, in_len};
 }
 
-inline EncodingResult encode_short_header(const Packets::ShortHeader& in,
-                                          uint8_t*& out) {
+EncodingResult encode_short_header(const Packets::ShortHeader& in,
+                                   uint8_t*& out) {
     size_t len = in.byte_size();
 
     return {true, len};
 }
 
-inline EncodingResult decode_short_header(uint8_t* in, size_t in_len,
-                                          Packets::Initial& out) {
+EncodingResult decode_short_header(uint8_t* in, size_t in_len,
+                                   Packets::Initial& out) {
     return {true, in_len};
 }
 
@@ -404,38 +416,32 @@ namespace zclp_tls {
 /*
     Default location for self-signed certs
 */
-inline const char* CERT_STORE_PRIVATE = "user/certs/private_key.pem";
-inline const char* CERT_STORE_PUBLIC = "user/certs/public_key.pem";
+const char* CERT_STORE_PRIVATE = "user/certs/private_key.pem";
+const char* CERT_STORE_PUBLIC = "user/certs/public_key.pem";
 
-inline void print_hex(const unsigned char* data, size_t length) {
+void print_hex(const unsigned char* data, size_t length) {
     for (size_t i = 0; i < length; ++i)
         printf("%02x", data[i]);
     printf("\n");
 }
 
-inline void init() {
+void init() {
     OpenSSL_add_all_algorithms();
     ERR_load_crypto_strings();
 }
 
-[[nodiscard]] inline bool gen_random_data_32(uint8_t* buffer, size_t len) {
+[[nodiscard]] bool gen_random_data_32(uint8_t* buffer, size_t len) {
     if (RAND_bytes(buffer, len) != 1)
         return false;
     return true;
 }
 
-struct encrypt_result {
-    uint8_t* result = nullptr;
-    size_t len = 0;
+encrypt_result::~encrypt_result() {
+    if (result)
+        delete[] result;
+}
 
-    ~encrypt_result() {
-        if (result)
-            delete[] result;
-    }
-};
-
-inline encrypt_result* encrypt_(EVP_PKEY* public_key, uint8_t* data,
-                                size_t len) {
+encrypt_result* encrypt_(EVP_PKEY* public_key, uint8_t* data, size_t len) {
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(public_key, nullptr);
     if (!ctx) {
         return nullptr;
@@ -465,8 +471,7 @@ inline encrypt_result* encrypt_(EVP_PKEY* public_key, uint8_t* data,
     return new encrypt_result{encrypted_data, outlen};
 }
 
-inline encrypt_result* decrypt_(EVP_PKEY* private_key, uint8_t* data,
-                                size_t len) {
+encrypt_result* decrypt_(EVP_PKEY* private_key, uint8_t* data, size_t len) {
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(private_key, nullptr);
     if (!ctx) {
         return nullptr;
@@ -492,7 +497,7 @@ inline encrypt_result* decrypt_(EVP_PKEY* private_key, uint8_t* data,
     return new encrypt_result{decrypted_data, outlen};
 }
 
-inline EVP_PKEY* load_public_key() {
+EVP_PKEY* load_public_key() {
     BIO* bio = BIO_new_file(CERT_STORE_PUBLIC, "r");
     if (!bio) {
         printf("Failed to open private key file\n");
@@ -508,7 +513,7 @@ inline EVP_PKEY* load_public_key() {
     return key;
 }
 
-inline EVP_PKEY* load_private_key() {
+EVP_PKEY* load_private_key() {
     BIO* bio = BIO_new_file(CERT_STORE_PRIVATE, "r");
     if (!bio) {
         printf("Failed to open private key file\n");
@@ -524,7 +529,7 @@ inline EVP_PKEY* load_private_key() {
     return key;
 }
 
-inline EVP_PKEY* generate_rsa_key(int bits) {
+EVP_PKEY* generate_rsa_key(int bits) {
     EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, nullptr);
     if (!ctx) {
         perror("Failed: context");
@@ -554,7 +559,7 @@ inline EVP_PKEY* generate_rsa_key(int bits) {
     return pkey;
 }
 
-inline bool save_private_key(EVP_PKEY* pkey, const char* filename) {
+bool save_private_key(EVP_PKEY* pkey, const char* filename) {
     FILE* fp = fopen(filename, "wb");
     if (!fp) {
         printf("Failed to open file:  %s", filename);
@@ -572,7 +577,7 @@ inline bool save_private_key(EVP_PKEY* pkey, const char* filename) {
     return true;
 }
 
-inline bool save_public_key(EVP_PKEY* pkey, const char* filename) {
+bool save_public_key(EVP_PKEY* pkey, const char* filename) {
     FILE* fp = fopen(filename, "wb");
     if (!fp) {
         printf("Failed to open file:  %s", filename);
@@ -589,158 +594,140 @@ inline bool save_public_key(EVP_PKEY* pkey, const char* filename) {
     return true;
 }
 
-struct key_bytes {
-    uint8_t* result = nullptr;
-    size_t len = 0;
+key_bytes::~key_bytes() {
+    if (result)
+        delete[] result;
+}
 
-    ~key_bytes() {
-        if (result)
-            delete[] result;
+[[nodiscard]] zclp_tls_arena::zclp_tls_arena() {
+    if (!load_keys()) {
+        EVP_PKEY* key = zclp_tls::generate_rsa_key(2048);
+        zclp_tls::save_private_key(key, zclp_tls::CERT_STORE_PRIVATE);
+        zclp_tls::save_public_key(key, zclp_tls::CERT_STORE_PUBLIC);
+
+        EVP_PKEY_free(key);
+
+        if (!load_keys())
+            throw "Failed to load RSA key pair";
+        else
+            printf("Successfully loaded RSA key pair\n");
+        return;
     }
-};
+    printf("Successfully loaded RSA key pair\n");
+}
 
-struct zclp_tls_arena {
-  private:
-    EVP_PKEY* public_key;
-    EVP_PKEY* private_key;
+void zclp_tls_arena::strip_pem_formatting(uint8_t* buffer, size_t& length) {
+    const uint8_t* begin =
+        static_cast<const uint8_t*>(memmem(buffer, length, "-----BEGIN", 10));
+    const uint8_t* end =
+        static_cast<const uint8_t*>(memmem(buffer, length, "-----END", 8));
 
-  public:
-    [[nodiscard]] zclp_tls_arena() {
-        if (!load_keys()) {
-            EVP_PKEY* key = zclp_tls::generate_rsa_key(2048);
-            zclp_tls::save_private_key(key, zclp_tls::CERT_STORE_PRIVATE);
-            zclp_tls::save_public_key(key, zclp_tls::CERT_STORE_PUBLIC);
+    if (!begin || !end)
+        return;
 
-            EVP_PKEY_free(key);
+    begin = static_cast<const uint8_t*>(memchr(begin, '\n', end - begin));
+    if (!begin)
+        return;
+    begin++;
 
-            if (!load_keys())
-                throw "Failed to load RSA key pair";
-            else
-                printf("Successfully loaded RSA key pair\n");
-            return;
+    uint8_t* temp = new uint8_t[length];
+    size_t pos = 0;
+
+    while (begin < end) {
+        if (*begin != '\n' && *begin != '\r') {
+            temp[pos++] = *begin;
         }
-        printf("Successfully loaded RSA key pair\n");
-    }
-
-    void strip_pem_formatting(uint8_t* buffer, size_t& length) {
-        const uint8_t* begin = static_cast<const uint8_t*>(
-            memmem(buffer, length, "-----BEGIN", 10));
-        const uint8_t* end =
-            static_cast<const uint8_t*>(memmem(buffer, length, "-----END", 8));
-
-        if (!begin || !end)
-            return;
-
-        begin = static_cast<const uint8_t*>(memchr(begin, '\n', end - begin));
-        if (!begin)
-            return;
         begin++;
-
-        uint8_t* temp = new uint8_t[length];
-        size_t pos = 0;
-
-        while (begin < end) {
-            if (*begin != '\n' && *begin != '\r') {
-                temp[pos++] = *begin;
-            }
-            begin++;
-        }
-        memcpy(buffer, temp, pos);
-        length = pos;
-        delete[] temp;
     }
+    memcpy(buffer, temp, pos);
+    length = pos;
+    delete[] temp;
+}
 
-    [[nodiscard]] key_bytes* pub_key_to_bytes() const {
-        if (!public_key)
-            return nullptr;
+[[nodiscard]] key_bytes* zclp_tls_arena::pub_key_to_bytes() const {
+    if (!public_key)
+        return nullptr;
 
-        BIO* bio = BIO_new(BIO_s_mem());
-        if (bio == nullptr)
-            throw "Failed to create BIO";
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (bio == nullptr)
+        throw "Failed to create BIO";
 
-        if (PEM_write_bio_PUBKEY(bio, public_key) == 0) {
-            BIO_free(bio);
-            throw "Failed to write EVP_PKEY to BIO";
-        }
-
-        size_t key_len = BIO_pending(bio);
-        uint8_t* key_data = new uint8_t[key_len]();
-
-        if (BIO_read(bio, key_data, key_len) <= 0) {
-            delete[] key_data;
-            BIO_free(bio);
-            throw "Failed to read data from BIO";
-        }
-
+    if (PEM_write_bio_PUBKEY(bio, public_key) == 0) {
         BIO_free(bio);
-        return new key_bytes{key_data, key_len};
+        throw "Failed to write EVP_PKEY to BIO";
     }
 
-    [[nodiscard]] key_bytes* private_key_to_bytes() const {
-        if (!private_key)
-            return nullptr;
+    size_t key_len = BIO_pending(bio);
+    uint8_t* key_data = new uint8_t[key_len]();
 
-        BIO* bio = BIO_new(BIO_s_mem());
-        if (bio == nullptr)
-            throw "Failed to create BIO";
-
-        if (PEM_write_bio_PrivateKey(bio, private_key, nullptr, nullptr, 0,
-                                     nullptr, nullptr)
-            == 0) {
-            BIO_free(bio);
-            throw "Failed to write EVP_PKEY to BIO";
-        }
-
-        size_t key_len = BIO_pending(bio);
-        uint8_t* key_data = new uint8_t[key_len]();
-
-        if (BIO_read(bio, key_data, key_len) <= 0) {
-            delete[] key_data;
-            BIO_free(bio);
-            throw "Failed to read data from BIO";
-        }
-
+    if (BIO_read(bio, key_data, key_len) <= 0) {
+        delete[] key_data;
         BIO_free(bio);
-        return new key_bytes{key_data, key_len};
+        throw "Failed to read data from BIO";
     }
 
-    [[nodiscard]] bool load_keys() {
-        public_key = load_public_key();
-        if (!public_key)
-            return false;
-        private_key = load_private_key();
-        if (!private_key)
-            return false;
-        return true;
+    BIO_free(bio);
+    return new key_bytes{key_data, key_len};
+}
+
+[[nodiscard]] key_bytes* zclp_tls_arena::private_key_to_bytes() const {
+    if (!private_key)
+        return nullptr;
+
+    BIO* bio = BIO_new(BIO_s_mem());
+    if (bio == nullptr)
+        throw "Failed to create BIO";
+
+    if (PEM_write_bio_PrivateKey(bio, private_key, nullptr, nullptr, 0, nullptr,
+                                 nullptr)
+        == 0) {
+        BIO_free(bio);
+        throw "Failed to write EVP_PKEY to BIO";
     }
 
-    ~zclp_tls_arena() {
-        EVP_PKEY_free(public_key);
-        EVP_PKEY_free(private_key);
+    size_t key_len = BIO_pending(bio);
+    uint8_t* key_data = new uint8_t[key_len]();
+
+    if (BIO_read(bio, key_data, key_len) <= 0) {
+        delete[] key_data;
+        BIO_free(bio);
+        throw "Failed to read data from BIO";
     }
-};
 
-constexpr size_t PACKET_NUMBER_MAX_LENGTH = 4;
-constexpr size_t SAMPLE_LENGTH = 16;
-constexpr size_t MASK_LENGTH = 5;
+    BIO_free(bio);
+    return new key_bytes{key_data, key_len};
+}
 
-struct MaskResult {
-    bool success;
-    std::array<uint8_t, MASK_LENGTH> mask;
+[[nodiscard]] bool zclp_tls_arena::load_keys() {
+    public_key = load_public_key();
+    if (!public_key)
+        return false;
+    private_key = load_private_key();
+    if (!private_key)
+        return false;
+    return true;
+}
 
-    MaskResult() : success(false), mask({}) {}
-    MaskResult(const MaskResult& other)
-        : success(other.success), mask(other.mask) {}
-    MaskResult(bool success, std::array<uint8_t, MASK_LENGTH> mask)
-        : success(success), mask(mask) {}
-};
+zclp_tls_arena::~zclp_tls_arena() {
+    EVP_PKEY_free(public_key);
+    EVP_PKEY_free(private_key);
+}
+
+MaskResult::MaskResult() : success(false), mask({}) {
+}
+MaskResult::MaskResult(const MaskResult& other)
+    : success(other.success), mask(other.mask) {
+}
+MaskResult::MaskResult(bool success, std::array<uint8_t, MASK_LENGTH> mask)
+    : success(success), mask(mask) {
+}
 
 constexpr std::array<uint8_t, 20> quic_v1_salt = {
     0xef, 0x4f, 0x5f, 0x57, 0x84, 0x90, 0xa3, 0x68, 0x9c, 0x76,
     0x6b, 0xee, 0xfd, 0x4a, 0x2a, 0xe6, 0x0a, 0x44, 0x9f, 0x17};
 
-inline MaskResult generate_mask(const std::array<uint8_t, 16>& hp_key,
-                                const std::vector<uint8_t>& sample) {
+MaskResult generate_mask(const std::array<uint8_t, 16>& hp_key,
+                         const std::vector<uint8_t>& sample) {
     if (sample.size() < SAMPLE_LENGTH) {
         return MaskResult();
     }
@@ -777,14 +764,14 @@ inline MaskResult generate_mask(const std::array<uint8_t, 16>& hp_key,
     return MaskResult({true, mask});
 }
 
-inline bool apply_header_protection(std::vector<uint8_t>& header,
-                                    const std::vector<uint8_t>& sample,
-                                    const std::array<uint8_t, 16>& hp_key) {
+bool apply_header_protection(std::vector<uint8_t>& header,
+                             const std::vector<uint8_t>& sample,
+                             const std::array<uint8_t, 16>& hp_key) {
     if (header.empty())
         return false;
 
     auto result = generate_mask(hp_key, sample);
-    if (!result.success)
+    if (!result)
         return false;
     auto mask = result.mask;
 
@@ -801,14 +788,13 @@ inline bool apply_header_protection(std::vector<uint8_t>& header,
     return true;
 }
 
-inline bool remove_header_protection(std::vector<uint8_t>& header,
-                                     const std::vector<uint8_t>& sample,
-                                     const std::array<uint8_t, 16>& hp_key) {
+bool remove_header_protection(std::vector<uint8_t>& header,
+                              const std::vector<uint8_t>& sample,
+                              const std::array<uint8_t, 16>& hp_key) {
     return apply_header_protection(header, sample, hp_key);
 }
 
-inline std::vector<uint8_t> serialize_long_header(
-    const Packets::LongHeader& hdr) {
+std::vector<uint8_t> serialize_long_header(const Packets::LongHeader& hdr) {
     std::vector<uint8_t> data(hdr.byte_size());
     data[0] = (hdr.header_form << 7) | (hdr.fixed_bit << 6)
         | (hdr.packet_type << 4) | (hdr.reserved_bits << 2)
@@ -821,8 +807,7 @@ inline std::vector<uint8_t> serialize_long_header(
     return data;
 }
 
-inline std::vector<uint8_t> serialize_short_header(
-    const Packets::ShortHeader& hdr) {
+std::vector<uint8_t> serialize_short_header(const Packets::ShortHeader& hdr) {
     std::vector<uint8_t> data(hdr.byte_size());
     data[0] = (hdr.header_form << 7) | (hdr.fixed_bit << 6)
         | (hdr.spin_bit << 5) | (hdr.reserved_bits << 3) | (hdr.key_phase << 2)
@@ -836,24 +821,24 @@ inline std::vector<uint8_t> serialize_short_header(
 }  // namespace zclp_tls
 
 namespace zclp_test_heplers {
-inline std::mt19937_64 rng{std::random_device{}()};
+std::mt19937_64 rng{std::random_device{}()};
 
 /*
     2 separate methods for connection & version IDs
     in case if types would change in the future
 */
 
-inline uint32_t getRandomVersionID() {
+uint32_t getRandomVersionID() {
     std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
     return dist(rng);
 }
 
-inline uint32_t getRandomConnectionID() {
+uint32_t getRandomConnectionID() {
     std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
     return dist(rng);
 }
 
-inline std::vector<uint32_t> getRandomSupportedVersions(size_t count) {
+std::vector<uint32_t> getRandomSupportedVersions(size_t count) {
     std::vector<uint32_t> versions;
     for (size_t i = 0; i < count; ++i) {
         versions.push_back(getRandomVersionID());
@@ -861,43 +846,43 @@ inline std::vector<uint32_t> getRandomSupportedVersions(size_t count) {
     return versions;
 }
 
-inline int getRandomBit() {
+int getRandomBit() {
     std::uniform_int_distribution<int> dist(0, 1);
     return dist(rng);
 }
 
-inline uint64_t getRandomValidValue() {
+uint64_t getRandomValidValue() {
     static const uint64_t MAX_VALID_VALUE = 0x3FFFFFFFFFFFFFFF;
     std::uniform_int_distribution<uint64_t> dist(0, MAX_VALID_VALUE);
     return dist(rng);
 }
 
-inline uint8_t getRandomPacketType() {
+uint8_t getRandomPacketType() {
     std::uniform_int_distribution<uint8_t> dist(0, 3);
     return dist(rng);
 }
 
-inline uint8_t getRandomProtectedBits() {
+uint8_t getRandomProtectedBits() {
     std::uniform_int_distribution<uint8_t> dist(0, 15);
     return dist(rng);
 }
 
-inline uint8_t getRandomReservedBits() {
+uint8_t getRandomReservedBits() {
     std::uniform_int_distribution<uint8_t> dist(0, 3);
     return dist(rng);
 }
 
-inline uint8_t getRandomPacketNumberLength() {
+uint8_t getRandomPacketNumberLength() {
     std::uniform_int_distribution<uint8_t> dist(0, 3);
     return dist(rng);
 }
 
-inline uint32_t getRandomPacketNumber() {
+uint32_t getRandomPacketNumber() {
     std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFF);
     return dist(rng);
 }
 
-inline void fill_random(uint8_t* data, size_t len) {
+void fill_random(uint8_t* data, size_t len) {
     std::random_device rd;
     std::mt19937 engine(rd());
     std::uniform_int_distribution<uint16_t> dist(0, 255);
@@ -907,11 +892,11 @@ inline void fill_random(uint8_t* data, size_t len) {
     }
 }
 
-inline void fill_stateless_reset(Packets::StatelessReset& st) {
+void fill_stateless_reset(Packets::StatelessReset& st) {
     fill_random(st.reset_token, sizeof(st.reset_token));
 }
 
-inline void print_array(const uint8_t* data, size_t len) {
+void print_array(const uint8_t* data, size_t len) {
     for (size_t i = 0; i < len; i++) {
         printf("[%i]", data[i]);
         if ((i + 1) % 8 == 0)
@@ -924,24 +909,24 @@ inline void print_array(const uint8_t* data, size_t len) {
 }  // namespace zclp_test_heplers
 
 namespace zclp_uint {
-inline std::mt19937_64 rng{std::random_device{}()};
+std::mt19937_64 rng{std::random_device{}()};
 
-inline uint32_t u64_rand() {
+uint32_t u64_rand() {
     std::uniform_int_distribution<uint64_t> dist(0, 0x3FFFFFFFFFFFFFFF);
     return dist(rng);
 }
 
-inline uint32_t u32_rand() {
+uint32_t u32_rand() {
     std::uniform_int_distribution<uint32_t> dist(0, 0x3FFFFFFF);
     return dist(rng);
 }
 
-inline uint32_t u16_rand() {
+uint32_t u16_rand() {
     std::uniform_int_distribution<uint16_t> dist(0, 0x3FFF);
     return dist(rng);
 }
 
-inline uint32_t u8_rand() {
+uint32_t u8_rand() {
     std::uniform_int_distribution<uint8_t> dist(0, 0x3F);
     return dist(rng);
 }
@@ -949,8 +934,7 @@ inline uint32_t u8_rand() {
 }  // namespace zclp_uint
 
 namespace zclp_session {
-inline bool create_session_token();
-inline bool validate_session_token();
-inline bool revoke_session_token();
+bool create_session_token();
+bool validate_session_token();
+bool revoke_session_token();
 }  // namespace zclp_session
-#endif  // ZCLP_UTILS
