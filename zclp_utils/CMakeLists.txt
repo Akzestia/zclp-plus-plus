@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(zclp_utils)
 
 add_library(zclp_utils
-    zclp_utils.hpp
+    zclp_utils.cpp
 )
 
 set_target_properties(zclp_utils PROPERTIES LINKER_LANGUAGE CXX)
