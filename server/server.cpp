@@ -87,8 +87,15 @@ bool Server::run() {
 void Server::process_udp_pack(uint8_t* packet, ssize_t len) {
     printf("Packet len: %lu\n", len);
     printf("Received message: %.*s\n", (int)len, packet);
-    delete[] packet;
-    packet = nullptr;
+
+    Packets::PacketType PT = Packets::get_packet_type(packet);
+    if (!PT) {
+        delete[] packet;
+        packet = nullptr;
+        return;
+    }
+
+    Packets::printPacketType(PT);
 }
 
 void Server::send_ack_pack(sockaddr_in destiantion_addr) const {
