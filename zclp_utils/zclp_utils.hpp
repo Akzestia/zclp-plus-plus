@@ -836,6 +836,66 @@ inline std::vector<uint8_t> serialize_short_header(
 }  // namespace zclp_tls
 
 namespace zclp_test_heplers {
+inline std::mt19937_64 rng{std::random_device{}()};
+
+/*
+    2 separate methods for connection & version IDs
+    in case if types would change in the future
+*/
+
+inline uint32_t getRandomVersionID() {
+    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
+    return dist(rng);
+}
+
+inline uint32_t getRandomConnectionID() {
+    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
+    return dist(rng);
+}
+
+inline std::vector<uint32_t> getRandomSupportedVersions(size_t count) {
+    std::vector<uint32_t> versions;
+    for (size_t i = 0; i < count; ++i) {
+        versions.push_back(getRandomVersionID());
+    }
+    return versions;
+}
+
+inline int getRandomBit() {
+    std::uniform_int_distribution<int> dist(0, 1);
+    return dist(rng);
+}
+
+inline uint64_t getRandomValidValue() {
+    static const uint64_t MAX_VALID_VALUE = 0x3FFFFFFFFFFFFFFF;
+    std::uniform_int_distribution<uint64_t> dist(0, MAX_VALID_VALUE);
+    return dist(rng);
+}
+
+inline uint8_t getRandomPacketType() {
+    std::uniform_int_distribution<uint8_t> dist(0, 3);
+    return dist(rng);
+}
+
+inline uint8_t getRandomProtectedBits() {
+    std::uniform_int_distribution<uint8_t> dist(0, 15);
+    return dist(rng);
+}
+
+inline uint8_t getRandomReservedBits() {
+    std::uniform_int_distribution<uint8_t> dist(0, 3);
+    return dist(rng);
+}
+
+inline uint8_t getRandomPacketNumberLength() {
+    std::uniform_int_distribution<uint8_t> dist(0, 3);
+    return dist(rng);
+}
+
+inline uint32_t getRandomPacketNumber() {
+    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFF);
+    return dist(rng);
+}
 
 inline void fill_random(uint8_t* data, size_t len) {
     std::random_device rd;
@@ -852,7 +912,7 @@ inline void fill_stateless_reset(Packets::StatelessReset& st) {
 }
 
 inline void print_array(const uint8_t* data, size_t len) {
-    for (size_t i = 0; i < len; ++i) {
+    for (size_t i = 0; i < len; i++) {
         printf("[%i]", data[i]);
         if ((i + 1) % 8 == 0)
             printf("\n");
@@ -888,4 +948,9 @@ inline uint32_t u8_rand() {
 
 }  // namespace zclp_uint
 
+namespace zclp_session {
+inline bool create_session_token();
+inline bool validate_session_token();
+inline bool revoke_session_token();
+}  // namespace zclp_session
 #endif  // ZCLP_UTILS

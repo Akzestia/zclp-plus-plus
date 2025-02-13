@@ -1,26 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
-#include <random>
-
 #include "../zclp++.hpp"
 #include "../zclp_utils/zclp_utils.hpp"
 
-namespace {
-std::mt19937_64 rng{std::random_device{}()};
-uint64_t getRandomValidValue() {
-    static const uint64_t MAX_VALID_VALUE = 0x3FFFFFFFFFFFFFFF;
-    std::uniform_int_distribution<uint64_t> dist(0, MAX_VALID_VALUE);
-    return dist(rng);
-}
-int getRandomBit() {
-    std::uniform_int_distribution<int> dist(0, 1);
-    return dist(rng);
-}
-}  // namespace
-
 TEST(StatelessResetTest, EncodeDecode) {
     using namespace Packets;
+    using namespace zclp_test_heplers;
     for (int i = 0; i < 1000000; i++) {
         Packets::StatelessReset st;
         zclp_test_heplers::fill_stateless_reset(st);

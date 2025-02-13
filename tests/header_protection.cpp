@@ -1,35 +1,14 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
-#include <random>
 #include <vector>
 
 #include "../zclp++.hpp"
 #include "../zclp_utils/zclp_utils.hpp"
 
-namespace {
-std::mt19937_64 rng{std::random_device{}()};
-
-uint32_t getRandomConnectionID() {
-    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
-    return dist(rng);
-}
-
-uint8_t getRandomPacketNumberLength() {
-    std::uniform_int_distribution<uint8_t> dist(0, 3);
-    return dist(rng);
-}
-
-uint32_t getRandomPacketNumber() {
-    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFF);
-    return dist(rng);
-}
-
-}  // namespace
-
 TEST(ShortHeaderTest, ProtectionApplyRemove) {
     using namespace Packets;
-
+    using namespace zclp_test_heplers;
     for (int i = 0; i < 1000000; i++) {
         Packets::ShortHeader sh;
         sh.header_form = 0;
@@ -81,7 +60,7 @@ TEST(ShortHeaderTest, ProtectionApplyRemove) {
 
 TEST(LongHeaderTest, ProtectionApplyRemove) {
     using namespace Packets;
-
+    using namespace zclp_test_heplers;
     for (int i = 0; i < 1000000; i++) {
         Packets::LongHeader lh;
         lh.header_form = 1;

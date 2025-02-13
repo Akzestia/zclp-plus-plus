@@ -1,23 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <cstdio>
-#include <random>
 
 #include "../zclp++.hpp"
 #include "../zclp_utils/zclp_utils.hpp"
 
-class VariableLengthIntegerTest : public ::testing::Test {
-  protected:
-    std::mt19937_64 rng{std::random_device{}()};
-
-    uint64_t getRandomValidValue() {
-        static const uint64_t MAX_VALID_VALUE = 0x3FFFFFFFFFFFFFFF;
-        std::uniform_int_distribution<uint64_t> dist(0, MAX_VALID_VALUE);
-        return dist(rng);
-    }
-};
-
-TEST_F(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
+TEST(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
+    using namespace zclp_test_heplers;
     for (int i = 0; i < 1000000; i++) {
         uint64_t originalValue = getRandomValidValue();
 
@@ -37,7 +26,7 @@ TEST_F(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
     }
 }
 
-TEST_F(VariableLengthIntegerTest, EdgeCaseValues) {
+TEST(VariableLengthIntegerTest, EdgeCaseValues) {
     std::vector<uint64_t> edge_cases = {
         0, 63, 64, 16383, 16384, 1073741823, 1073741824, 4611686018427387903};
 

@@ -1,42 +1,12 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
-#include <random>
-
 #include "../zclp++.hpp"
 #include "../zclp_utils/zclp_utils.hpp"
 
-namespace {
-std::mt19937_64 rng{std::random_device{}()};
-
-uint32_t getRandomVersionID() {
-    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
-    return dist(rng);
-}
-
-uint32_t getRandomConnectionID() {
-    std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
-    return dist(rng);
-}
-
-int getRandomBit() {
-    std::uniform_int_distribution<int> dist(0, 1);
-    return dist(rng);
-}
-
-uint8_t getRandomPacketType() {
-    std::uniform_int_distribution<uint8_t> dist(0, 3);  // 2-bit value (0-3)
-    return dist(rng);
-}
-
-uint8_t getRandomProtectedBits() {
-    std::uniform_int_distribution<uint8_t> dist(0, 15);  // 4-bit value (0-15)
-    return dist(rng);
-}
-}  // namespace
-
 TEST(ProtectedLongHeaderTest, EncodeDecode) {
     using namespace Packets;
+    using namespace zclp_test_heplers;
 
     for (int i = 0; i < 1000000; i++) {
         Packets::ProtectedLongHeader plh;
