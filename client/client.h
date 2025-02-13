@@ -4,8 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "../zclp++.hpp"
-#include "../zclp_utils/zclp_utils.hpp"
+#include "../zclp_utils/zclp_utils.h"
 
 struct Client {
     [[nodiscard]] bool run();

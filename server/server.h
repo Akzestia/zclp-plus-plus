@@ -3,7 +3,7 @@
 #include <atomic>
 #include <cstdint>
 
-#include "../zclp_utils/zclp_utils.hpp"
+#include "../zclp_utils/zclp_utils.h"
 
 struct Server {
     [[nodiscard]] bool run();
