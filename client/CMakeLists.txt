@@ -10,6 +10,7 @@ set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX)
 
 target_link_libraries(client
     zclp_utils
+    zclp++
 )
 
 target_include_directories(client
