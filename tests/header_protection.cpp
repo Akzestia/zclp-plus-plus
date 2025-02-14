@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <vector>
 
-#include "../zclp++.hpp"
-#include "../zclp_utils/zclp_utils.hpp"
+#include "../zclp++/zclp++.h"
+#include "../zclp_utils/zclp_utils.h"
 
 TEST(ShortHeaderTest, ProtectionApplyRemove) {
     using namespace Packets;

@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
-#include "../zclp++.hpp"
-#include "../zclp_utils/zclp_utils.hpp"
+#include "../zclp++/zclp++.h"
+#include "../zclp_utils/zclp_utils.h"
 
 TEST(LongHeaderTest, EncodeDecode) {
     using namespace Packets;
