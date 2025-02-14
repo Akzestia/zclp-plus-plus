@@ -36,6 +36,11 @@ VariableLengthInteger& VariableLengthInteger::operator=(uint64_t val) {
     return *this;
 }
 
+VariableLengthInteger& VariableLengthInteger::operator+=(uint64_t val) {
+    *this = value + val;
+    return *this;
+}
+
 namespace zclp_encoding {
 EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out);
 EncodingResult encode_vl_integer(const VariableLengthInteger& in,
@@ -71,7 +76,6 @@ EncodingResult decode(uint8_t* in, Ping& out) {
 
 EncodingResult encode(const Ping& in, uint8_t*& out) {
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
     auto d_type = zclp_encoding::encode_vl_integer(in.type, out);
     return {d_type, d_type.len};
 }
@@ -102,7 +106,6 @@ EncodingResult decode(uint8_t* in, AckRange& out) {
 EncodingResult encode(const AckRange& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_gap_ref = out + offset;
     auto d_gap = zclp_encoding::encode_vl_integer(in.gap, d_gap_ref);
@@ -164,7 +167,6 @@ EncodingResult decode(uint8_t* in, EcnCount& out) {
 EncodingResult encode(const EcnCount& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_ect0_ref = out + offset;
     auto d_ect0 = zclp_encoding::encode_vl_integer(in.ect0, d_ect0_ref);
@@ -275,7 +277,6 @@ EncodingResult encode(const Ack& in, uint8_t*& out) {
     size_t offset = 0;
 
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -396,7 +397,6 @@ EncodingResult decode(uint8_t* in, ResetStream& out) {
 EncodingResult encode(const ResetStream& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -484,7 +484,6 @@ EncodingResult decode(uint8_t* in, StopSending& out) {
 EncodingResult encode(const StopSending& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -568,7 +567,6 @@ EncodingResult decode(uint8_t* in, Crypto& out) {
 EncodingResult encode(const Crypto& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -643,7 +641,6 @@ EncodingResult decode(uint8_t* in, NewToken& out) {
 EncodingResult encode(const NewToken& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -715,7 +712,6 @@ EncodingResult decode(uint8_t* in, Stream& out) {
 EncodingResult encode(const Stream& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     out[offset++] |=
         (in.unused << 3) | (in.off << 2) | (in.len << 1) | (in.fin << 0);
@@ -780,7 +776,6 @@ EncodingResult decode(uint8_t* in, MaxData& out) {
 EncodingResult encode(const MaxData& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -847,7 +842,6 @@ EncodingResult decode(uint8_t* in, MaxStreamData& out) {
 EncodingResult encode(const MaxStreamData& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -914,7 +908,6 @@ EncodingResult decode(uint8_t* in, MaxStreams& out) {
 EncodingResult encode(const MaxStreams& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -971,7 +964,6 @@ EncodingResult decode(uint8_t* in, DataBlocked& out) {
 EncodingResult encode(const DataBlocked& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1040,7 +1032,6 @@ EncodingResult decode(uint8_t* in, StreamDataBlocked& out) {
 EncodingResult encode(const StreamDataBlocked& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1107,7 +1098,6 @@ EncodingResult decode(uint8_t* in, StreamsBlocked& out) {
 EncodingResult encode(const StreamsBlocked& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1186,7 +1176,6 @@ EncodingResult decode(uint8_t* in, NewConnectionId& out) {
 EncodingResult encode(const NewConnectionId& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1263,7 +1252,6 @@ EncodingResult decode(uint8_t* in, RetireConnectionId& out) {
 EncodingResult encode(const RetireConnectionId& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1314,7 +1302,7 @@ EncodingResult decode(uint8_t* in, PathChallange& out) {
 EncodingResult encode(const PathChallange& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
+    ;
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1359,7 +1347,6 @@ EncodingResult decode(uint8_t* in, PathResponse& out) {
 EncodingResult encode(const PathResponse& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1438,7 +1425,6 @@ EncodingResult decode(uint8_t* in, ConnectionClose& out) {
 EncodingResult encode(const ConnectionClose& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1497,7 +1483,6 @@ EncodingResult decode(uint8_t* in, HandShakeDone& out) {
 EncodingResult encode(const HandShakeDone& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1544,7 +1529,6 @@ EncodingResult decode(uint8_t* in, ClusterMask& out) {
 EncodingResult encode(const ClusterMask& in, uint8_t*& out) {
     size_t offset = 0;
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -1636,8 +1620,10 @@ size_t frame_payload_size(std::vector<FrameVariant> payload) {
 FrameResult get_frame_type(uint8_t* in) {
     VariableLengthInteger FT;
     printf("Before FT_RES\n");
+    printu8(in, 1);
     auto FT_RES = zclp_encoding::decode_vl_integer(in, FT);
     printf("After FT_RES\n");
+
     if (!FT_RES)
         return {false};
     switch (FT) {
@@ -1787,6 +1773,343 @@ FrameResult get_frame_type(uint8_t* in) {
     }
     };
 }
+
+EncodingResult decode(uint8_t* in, Frames::FrameVariant& out) {
+    auto res = get_frame_type(in);
+    printf("FT: %u\n", res.frame_type);
+    printf("RS TRUE?: %b\n", res.success);
+    if (!res)
+        return {false, 0};
+
+    switch (res.frame_type) {
+    case _Padding: {
+        Padding frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _Ping: {
+        Ping frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _Ack: {
+        Ack frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _ResetStream: {
+        ResetStream frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _StopSending: {
+        StopSending frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _Crypto: {
+        Crypto frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _NewToken: {
+        NewToken frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _MaxData: {
+        MaxData frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _MaxStreamData: {
+        MaxStreamData frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _MaxStreams: {
+        MaxStreams frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _DataBlocked: {
+        DataBlocked frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _StreamDataBlocked: {
+        StreamDataBlocked frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _StreamsBlocked: {
+        StreamsBlocked frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _NewConnectionId: {
+        NewConnectionId frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _RetireConnectionId: {
+        RetireConnectionId frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _PathChallange: {
+        PathChallange frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _PathResponse: {
+        PathResponse frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _ConnectionClose: {
+        ConnectionClose frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _HandShakeDone: {
+        HandShakeDone frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _ClusterMask: {
+        ClusterMask frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    case _Stream: {
+        Stream frame;
+        auto d_res = decode(in, frame);
+        if (!d_res)
+            return {false, d_res.len};
+        out = frame;
+        return {true, d_res.len};
+    } break;
+
+    default:
+        return {false, 0};
+    }
+}
+
+EncodingResult encode(const Frames::FrameVariant& frame, uint8_t*& out) {
+    return std::visit(
+        overloaded{
+            [out](const Frames::Padding& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::Ping& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::Ack& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::ResetStream& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::StopSending& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::Crypto& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::NewToken& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::Stream& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::MaxData& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::MaxStreamData& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::MaxStreams& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::DataBlocked& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](
+                const Frames::StreamDataBlocked& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::StreamsBlocked& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::NewConnectionId& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](
+                const Frames::RetireConnectionId& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::PathChallange& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::PathResponse& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::ConnectionClose& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::HandShakeDone& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            },
+            [out](const Frames::ClusterMask& f) mutable -> EncodingResult {
+                auto res = encode(f, out);
+                if (!res)
+                    return {false, res.len};
+                return {res, res.len};
+            }},
+        frame);
+}
+
 }  // namespace Frames
 
 namespace Packets {
@@ -1970,8 +2293,20 @@ ProtectedLongHeader::ProtectedLongHeader(PacketType PT) noexcept
     }
 }
 
+Initial::Initial() noexcept
+    : header(Packets::LongHeader{Packets::PacketType::PACKET_INITIAL}),
+      token_length(0),
+      length(1) {
+}
+
 size_t Initial::byte_size() const {
     return header.byte_size() + token_length() + length();
+}
+
+void Initial::add_frame(const Frames::FrameVariant& frame, bool set_len) {
+    if (set_len)
+        length += Frames::frame_size(frame);
+    payload.push_back(frame);
 }
 
 size_t ZeroRTT::byte_size() const {

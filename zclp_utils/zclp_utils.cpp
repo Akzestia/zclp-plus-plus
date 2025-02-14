@@ -72,7 +72,6 @@ EncodingResult encode_vl_integer(const VariableLengthInteger& in,
                                  uint8_t*& out) {
     size_t len = in.byte_size();
     uint64_t value = in();
-    out = new uint8_t[len]();
 
     for (size_t i = 0; i < len; i++)
         out[i] = (value >> ((len - 1 - i) * 8)) & 0xFF;
@@ -84,7 +83,7 @@ EncodingResult encode_vl_integer(const VariableLengthInteger& in,
 
 EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out) {
     uint64_t value = 0;
-    printu8(in, 1);
+    // printu8(in, 1);
     size_t len = get_vl_len(in);
 
     in[0] &= 0b00111111;
@@ -197,7 +196,7 @@ EncodingResult decode_version_negotiation(uint8_t* in, size_t in_len,
 EncodingResult encode_long_header(const Packets::LongHeader& in,
                                   uint8_t*& out) {
     size_t len = in.byte_size();
-    out = new uint8_t[len]();
+    // out = new uint8_t[len]();
 
     out[0] |= (in.header_form << 7);
     out[0] |= (in.fixed_bit << 6);
@@ -280,10 +279,12 @@ EncodingResult encode_initial_packet(const Packets::Initial& in,
     out = new uint8_t[len]();
     size_t offset = 0;
 
-    auto header_encode = encode_long_header(in.header, out);
+    uint8_t* ref_eader = out + offset;
+    auto header_encode = encode_long_header(in.header, ref_eader);
     if (!header_encode)
         return {false, header_encode.len + offset};
     offset += header_encode.len;
+    ref_eader = nullptr;
 
     uint8_t* ref_token_len = out + offset;
     auto token_len = encode_vl_integer(in.token_length, ref_token_len);
@@ -301,18 +302,24 @@ EncodingResult encode_initial_packet(const Packets::Initial& in,
         return {false, len_.len + offset};
     offset += len_.len;
     ref_len = nullptr;
-
     size_t packet_number_offset = offset++;
 
-    for (auto frame : in.payload) {
+    for (const auto& frame : in.payload) {
         auto size = Frames::frame_size(frame);
-        memcpy(out + offset, &frame, size);
-        offset += size;
+        uint8_t* frame_ref = out + offset;
+        auto res = Frames::encode(frame, frame_ref);
+        if (!res)
+            return {false, len_.len + offset};
+        memcpy(out + offset, frame_ref, res.len);
+        offset += res.len;
+        frame_ref = nullptr;
     }
 
+    printu8(out, len);
     uint8_t* ref_shift = out + packet_number_offset;
     shift_left(ref_shift, in.length, 5);
     out[packet_number_offset] |= (in.packet_number << 5);
+    ref_shift = nullptr;
 
     return {true, len};
 }
@@ -320,18 +327,19 @@ EncodingResult encode_initial_packet(const Packets::Initial& in,
 EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
                                      Packets::Initial& out) {
     size_t offset = 0;
+
     auto d_lheader = decode_long_header(in, out.header.byte_size(), out.header);
-    offset += out.header.byte_size();
     if (!d_lheader)
         return {false, offset};
+    offset += d_lheader.len;
     uint8_t* d_token_len_ref = in + offset;
     auto d_token_len =
         zclp_encoding::decode_vl_integer(d_token_len_ref, out.token_length);
-    offset += d_token_len.len;
     if (!d_token_len) {
         d_token_len_ref = nullptr;
         return {false, offset};
     }
+    offset += d_token_len.len;
     d_token_len_ref = nullptr;
 
     uint8_t* d_token_ref = in + offset;
@@ -340,6 +348,8 @@ EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
     d_token_ref = nullptr;
 
     uint8_t* d_len_ref = in + offset;
+    ;
+
     auto d_len = zclp_encoding::decode_vl_integer(d_len_ref, out.length);
     if (!d_len) {
         d_len_ref = nullptr;
@@ -352,14 +362,23 @@ EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
     out.packet_number = (d_packet_number_ref[0] >> 5) & 0b111;
     shift_right(d_packet_number_ref, out.length, 5);
     d_packet_number_ref = nullptr;
+    printu8(in, in_len);
 
-    uint8_t* d_payload_ref = in + offset;
-    auto FT = Frames::get_frame_type(d_payload_ref);
-    if (FT)
-        out.payload.push_back(FT.frame);
+    size_t payload_size = out.length - 1, d_payload_size = 0;
+    while (d_payload_size < payload_size) {
+        uint8_t* d_payload_ref = in + offset;
+        Frames::FrameVariant fv;
+        auto fv_res = Frames::decode(d_payload_ref, fv);
+        if (!fv_res) {
+            d_payload_ref = nullptr;
+            return {false, fv_res.len};
+        }
+        out.add_frame(fv, 0);
+        offset += fv_res.len;
+        d_payload_size += fv_res.len;
+        d_payload_ref = nullptr;
+    }
 
-    printf("FT type %u", FT.frame_type);
-    d_payload_ref = nullptr;
     return {true, in_len};
 }
 
