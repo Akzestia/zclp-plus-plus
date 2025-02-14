@@ -1,6 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 #include "zclp++.h"
 
@@ -53,6 +54,8 @@ EncodingResult decode(uint8_t* in, Padding& out) {
 };
 
 EncodingResult encode(const Padding& in, uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
     auto d_type = zclp_encoding::encode_vl_integer(in.type, out);
     return {d_type, d_type.len};
 }
@@ -67,6 +70,8 @@ EncodingResult decode(uint8_t* in, Ping& out) {
 };
 
 EncodingResult encode(const Ping& in, uint8_t*& out) {
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
     auto d_type = zclp_encoding::encode_vl_integer(in.type, out);
     return {d_type, d_type.len};
 }
@@ -96,6 +101,8 @@ EncodingResult decode(uint8_t* in, AckRange& out) {
 
 EncodingResult encode(const AckRange& in, uint8_t*& out) {
     size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
 
     uint8_t* d_gap_ref = out + offset;
     auto d_gap = zclp_encoding::encode_vl_integer(in.gap, d_gap_ref);
@@ -156,6 +163,8 @@ EncodingResult decode(uint8_t* in, EcnCount& out) {
 
 EncodingResult encode(const EcnCount& in, uint8_t*& out) {
     size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
 
     uint8_t* d_ect0_ref = out + offset;
     auto d_ect0 = zclp_encoding::encode_vl_integer(in.ect0, d_ect0_ref);
@@ -264,6 +273,9 @@ EncodingResult decode(uint8_t* in, Ack& out) {
 
 EncodingResult encode(const Ack& in, uint8_t*& out) {
     size_t offset = 0;
+
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
 
     uint8_t* d_type_ref = out + offset;
     auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
@@ -382,6 +394,50 @@ EncodingResult decode(uint8_t* in, ResetStream& out) {
 }
 
 EncodingResult encode(const ResetStream& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_stream_id_ref = out + offset;
+    auto d_stream_id =
+        zclp_encoding::encode_vl_integer(in.stream_id, d_stream_id_ref);
+    if (!d_stream_id) {
+        d_stream_id_ref = nullptr;
+        return {d_stream_id, d_stream_id.len};
+    }
+    offset += d_stream_id.len;
+    d_stream_id_ref = nullptr;
+
+    uint8_t* d_error_code_ref = out + offset;
+    auto d_error_code =
+        zclp_encoding::encode_vl_integer(in.error_code, d_error_code_ref);
+    if (!d_error_code) {
+        d_error_code_ref = nullptr;
+        return {d_error_code, d_error_code.len};
+    }
+    offset += d_error_code.len;
+    d_error_code_ref = nullptr;
+
+    uint8_t* d_final_size_ref = out + offset;
+    auto d_final_size =
+        zclp_encoding::encode_vl_integer(in.final_size, d_final_size_ref);
+    if (!d_final_size) {
+        d_final_size_ref = nullptr;
+        return {d_final_size, d_final_size.len};
+    }
+    offset += d_final_size.len;
+    d_final_size_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t StopSending::byte_size() const {
@@ -426,6 +482,40 @@ EncodingResult decode(uint8_t* in, StopSending& out) {
 }
 
 EncodingResult encode(const StopSending& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_stream_id_ref = out + offset;
+    auto d_stream_id =
+        zclp_encoding::encode_vl_integer(in.stream_id, d_stream_id_ref);
+    if (!d_stream_id) {
+        d_stream_id_ref = nullptr;
+        return {d_stream_id, d_stream_id.len};
+    }
+    offset += d_stream_id.len;
+    d_stream_id_ref = nullptr;
+
+    uint8_t* d_error_code_ref = out + offset;
+    auto d_error_code =
+        zclp_encoding::encode_vl_integer(in.error_code, d_error_code_ref);
+    if (!d_error_code) {
+        d_error_code_ref = nullptr;
+        return {d_error_code, d_error_code.len};
+    }
+    offset += d_error_code.len;
+    d_error_code_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t Crypto::byte_size() const {
@@ -476,6 +566,42 @@ EncodingResult decode(uint8_t* in, Crypto& out) {
 }
 
 EncodingResult encode(const Crypto& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_offset_ref = out + offset;
+    auto d_offset = zclp_encoding::encode_vl_integer(in.offset, d_offset_ref);
+    if (!d_offset) {
+        d_offset_ref = nullptr;
+        return {d_offset, d_offset.len};
+    }
+    offset += d_offset.len;
+    d_offset_ref = nullptr;
+
+    uint8_t* d_length_ref = out + offset;
+    auto d_length = zclp_encoding::encode_vl_integer(in.length, d_length_ref);
+    if (!d_length) {
+        d_length_ref = nullptr;
+        return {d_length, d_length.len};
+    }
+    offset += d_length.len;
+    d_length_ref = nullptr;
+
+    uint8_t* d_data_ref = out + offset;
+    memcpy(d_data_ref, in.data, in.length);
+    d_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t NewToken::byte_size() const {
@@ -515,15 +641,110 @@ EncodingResult decode(uint8_t* in, NewToken& out) {
 }
 
 EncodingResult encode(const NewToken& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_length_ref = out + offset;
+    auto d_length = zclp_encoding::encode_vl_integer(in.length, d_length_ref);
+    if (!d_length) {
+        d_length_ref = nullptr;
+        return {d_length, d_length.len};
+    }
+    offset += d_length.len;
+    d_length_ref = nullptr;
+
+    uint8_t* token_ref = out + offset;
+    memcpy(token_ref, in.token, in.length);
+    offset += in.length;
+    token_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t Stream::byte_size() const {
     return 1 + stream_id.byte_size() + length.byte_size() + length();
 }
 EncodingResult decode(uint8_t* in, Stream& out) {
+    size_t offset = 0;
+
+    out.unused = (in[offset] >> 3) & 0b11111;
+    out.off = (in[offset] >> 2) & 0b1;
+    out.len = (in[offset] >> 1) & 0b1;
+    out.fin = in[offset] & 0b1;
+
+    offset++;
+    uint8_t* ref_stream_id = in + offset;
+
+    auto stream_id_res =
+        zclp_encoding::decode_vl_integer(ref_stream_id, out.stream_id);
+    if (!stream_id_res) {
+        ref_stream_id = nullptr;
+        return {false, stream_id_res.len + offset};
+    }
+    offset += stream_id_res.len;
+    ref_stream_id = nullptr;
+
+    uint8_t* ref_length = in + offset;
+
+    auto length_res = zclp_encoding::decode_vl_integer(ref_length, out.length);
+    if (!length_res) {
+        ref_length = nullptr;
+        return {false, length_res.len + offset};
+    }
+    offset += length_res.len;
+    ref_length = nullptr;
+
+    uint8_t* ref_stream_data = in + offset;
+    memcpy(&out.stream_data, ref_stream_data, out.length);
+    offset += out.len;
+    ref_stream_data = nullptr;
+
+    return {true, offset};
 }
 
 EncodingResult encode(const Stream& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    out[offset++] |=
+        (in.unused << 3) | (in.off << 2) | (in.len << 1) | (in.fin << 0);
+
+    uint8_t* d_stream_id_ref = out + offset;
+    auto d_stream_id =
+        zclp_encoding::encode_vl_integer(in.stream_id, d_stream_id_ref);
+    if (!d_stream_id) {
+        d_stream_id_ref = nullptr;
+        return {d_stream_id, d_stream_id.len};
+    }
+    offset += d_stream_id.len;
+    d_stream_id_ref = nullptr;
+
+    uint8_t* d_length_ref = out + offset;
+    auto d_length = zclp_encoding::encode_vl_integer(in.length, d_length_ref);
+    if (!d_length) {
+        d_length_ref = nullptr;
+        return {d_length, d_length.len};
+    }
+    offset += d_length.len;
+    d_length_ref = nullptr;
+
+    uint8_t* stream_data_ref = out + offset;
+    memcpy(stream_data_ref, in.stream_data, in.length);
+    offset += in.length;
+    stream_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t MaxData::byte_size() const {
@@ -557,6 +778,30 @@ EncodingResult decode(uint8_t* in, MaxData& out) {
 }
 
 EncodingResult encode(const MaxData& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_max_data_ref = out + offset;
+    auto d_max_data =
+        zclp_encoding::encode_vl_integer(in.max_data, d_max_data_ref);
+    if (!d_max_data) {
+        d_max_data_ref = nullptr;
+        return {d_max_data, d_max_data.len};
+    }
+    offset += d_max_data.len;
+    d_max_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t MaxStreamData::byte_size() const {
@@ -600,6 +845,40 @@ EncodingResult decode(uint8_t* in, MaxStreamData& out) {
 }
 
 EncodingResult encode(const MaxStreamData& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_stream_id_ref = out + offset;
+    auto d_stream_id =
+        zclp_encoding::encode_vl_integer(in.stream_id, d_stream_id_ref);
+    if (!d_stream_id) {
+        d_stream_id_ref = nullptr;
+        return {d_stream_id, d_stream_id.len};
+    }
+    offset += d_stream_id.len;
+    d_stream_id_ref = nullptr;
+
+    uint8_t* d_max_stream_data_ref = out + offset;
+    auto d_max_stream_data = zclp_encoding::encode_vl_integer(
+        in.max_stream_data, d_max_stream_data_ref);
+    if (!d_max_stream_data) {
+        d_max_stream_data_ref = nullptr;
+        return {d_max_stream_data, d_max_stream_data.len};
+    }
+    offset += d_max_stream_data.len;
+    d_max_stream_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t MaxStreams::byte_size() const {
@@ -633,6 +912,30 @@ EncodingResult decode(uint8_t* in, MaxStreams& out) {
 }
 
 EncodingResult encode(const MaxStreams& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_max_streams_ref = out + offset;
+    auto d_max_streams =
+        zclp_encoding::encode_vl_integer(in.max_streams, d_max_streams_ref);
+    if (!d_max_streams) {
+        d_max_streams_ref = nullptr;
+        return {d_max_streams, d_max_streams.len};
+    }
+    offset += d_max_streams.len;
+    d_max_streams_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t DataBlocked::byte_size() const {
@@ -666,6 +969,30 @@ EncodingResult decode(uint8_t* in, DataBlocked& out) {
 }
 
 EncodingResult encode(const DataBlocked& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_data_limit_ref = out + offset;
+    auto d_data_limit =
+        zclp_encoding::encode_vl_integer(in.data_limit, d_data_limit_ref);
+    if (!d_data_limit) {
+        d_data_limit_ref = nullptr;
+        return {d_data_limit, d_data_limit.len};
+    }
+    offset += d_data_limit.len;
+    d_data_limit_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t StreamDataBlocked::byte_size() const {
@@ -711,6 +1038,40 @@ EncodingResult decode(uint8_t* in, StreamDataBlocked& out) {
 }
 
 EncodingResult encode(const StreamDataBlocked& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_stream_id_ref = out + offset;
+    auto d_stream_id =
+        zclp_encoding::encode_vl_integer(in.stream_id, d_stream_id_ref);
+    if (!d_stream_id) {
+        d_stream_id_ref = nullptr;
+        return {d_stream_id, d_stream_id.len};
+    }
+    offset += d_stream_id.len;
+    d_stream_id_ref = nullptr;
+
+    uint8_t* d_stream_data_limit_ref = out + offset;
+    auto d_stream_data_limit = zclp_encoding::encode_vl_integer(
+        in.stream_data_limit, d_stream_data_limit_ref);
+    if (!d_stream_data_limit) {
+        d_stream_data_limit_ref = nullptr;
+        return {d_stream_data_limit, d_stream_data_limit.len};
+    }
+    offset += d_stream_data_limit.len;
+    d_stream_data_limit_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t StreamsBlocked::byte_size() const {
@@ -744,6 +1105,30 @@ EncodingResult decode(uint8_t* in, StreamsBlocked& out) {
 }
 
 EncodingResult encode(const StreamsBlocked& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_stream_limit_ref = out + offset;
+    auto d_stream_limit =
+        zclp_encoding::encode_vl_integer(in.stream_limit, d_stream_limit_ref);
+    if (!d_stream_limit) {
+        d_stream_limit_ref = nullptr;
+        return {d_stream_limit, d_stream_limit.len};
+    }
+    offset += d_stream_limit.len;
+    d_stream_limit_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t NewConnectionId::byte_size() const {
@@ -799,6 +1184,50 @@ EncodingResult decode(uint8_t* in, NewConnectionId& out) {
 }
 
 EncodingResult encode(const NewConnectionId& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_sequence_number_ref = out + offset;
+    auto d_sequence_number = zclp_encoding::encode_vl_integer(
+        in.sequence_number, d_sequence_number_ref);
+    if (!d_sequence_number) {
+        d_sequence_number_ref = nullptr;
+        return {d_sequence_number, d_sequence_number.len};
+    }
+    offset += d_sequence_number.len;
+    d_sequence_number_ref = nullptr;
+
+    uint8_t* d_retire_prior_to_ref = out + offset;
+    auto d_retire_prior_to = zclp_encoding::encode_vl_integer(
+        in.retire_prior_to, d_retire_prior_to_ref);
+    if (!d_retire_prior_to) {
+        d_retire_prior_to_ref = nullptr;
+        return {d_retire_prior_to, d_retire_prior_to.len};
+    }
+    offset += d_retire_prior_to.len;
+    d_retire_prior_to_ref = nullptr;
+
+    uint8_t* connection_id_ref = out + offset;
+    memcpy(connection_id_ref, &in.connection_id, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    connection_id_ref = nullptr;
+
+    uint8_t* stateless_reset_token_ref = out + offset;
+    memcpy(stateless_reset_token_ref, &in.stateless_reset_token, 16);
+    offset += 16;
+    stateless_reset_token_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t RetireConnectionId::byte_size() const {
@@ -832,6 +1261,30 @@ EncodingResult decode(uint8_t* in, RetireConnectionId& out) {
 }
 
 EncodingResult encode(const RetireConnectionId& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_sequence_number_ref = out + offset;
+    auto d_sequence_number = zclp_encoding::encode_vl_integer(
+        in.sequence_number, d_sequence_number_ref);
+    if (!d_sequence_number) {
+        d_sequence_number_ref = nullptr;
+        return {d_sequence_number, d_sequence_number.len};
+    }
+    offset += d_sequence_number.len;
+    d_sequence_number_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t PathChallange::byte_size() const {
@@ -859,6 +1312,25 @@ EncodingResult decode(uint8_t* in, PathChallange& out) {
 }
 
 EncodingResult encode(const PathChallange& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_data_ref = out + offset;
+    memcpy(d_data_ref, &in.data, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    d_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t PathResponse::byte_size() const {
@@ -885,6 +1357,25 @@ EncodingResult decode(uint8_t* in, PathResponse& out) {
 }
 
 EncodingResult encode(const PathResponse& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_data_ref = out + offset;
+    memcpy(d_data_ref, &in.data, sizeof(uint64_t));
+    offset += sizeof(uint64_t);
+    d_data_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t ConnectionClose::byte_size() const {
@@ -945,6 +1436,54 @@ EncodingResult decode(uint8_t* in, ConnectionClose& out) {
 }
 
 EncodingResult encode(const ConnectionClose& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_error_ref = out + offset;
+    auto d_error = zclp_encoding::encode_vl_integer(in.error, d_error_ref);
+    if (!d_error) {
+        d_error_ref = nullptr;
+        return {d_error, d_error.len};
+    }
+    offset += d_error.len;
+    d_error_ref = nullptr;
+
+    uint8_t* d_frame_type_ref = out + offset;
+    auto d_frame_type =
+        zclp_encoding::encode_vl_integer(in.frame_type, d_frame_type_ref);
+    if (!d_frame_type) {
+        d_frame_type_ref = nullptr;
+        return {d_frame_type, d_frame_type.len};
+    }
+    offset += d_frame_type.len;
+    d_frame_type_ref = nullptr;
+
+    uint8_t* d_phrase_len_ref = out + offset;
+    auto d_phrase_len =
+        zclp_encoding::encode_vl_integer(in.phrase_len, d_phrase_len_ref);
+    if (!d_phrase_len) {
+        d_phrase_len_ref = nullptr;
+        return {d_phrase_len, d_phrase_len.len};
+    }
+    offset += d_phrase_len.len;
+    d_phrase_len_ref = nullptr;
+
+    uint8_t* d_phrase_ref = out + offset;
+    memcpy(d_phrase_ref, in.phrase, in.phrase_len);
+    offset += d_phrase_len.len;
+    d_phrase_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t HandShakeDone::byte_size() const {
@@ -956,6 +1495,20 @@ EncodingResult decode(uint8_t* in, HandShakeDone& out) {
 }
 
 EncodingResult encode(const HandShakeDone& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t ClusterMask::byte_size() const {
@@ -989,6 +1542,35 @@ EncodingResult decode(uint8_t* in, ClusterMask& out) {
 }
 
 EncodingResult encode(const ClusterMask& in, uint8_t*& out) {
+    size_t offset = 0;
+    size_t len = in.byte_size();
+    out = new uint8_t[len]();
+
+    uint8_t* d_type_ref = out + offset;
+    auto d_type = zclp_encoding::encode_vl_integer(in.type, d_type_ref);
+    if (!d_type) {
+        d_type_ref = nullptr;
+        return {d_type, d_type.len};
+    }
+    offset += d_type.len;
+    d_type_ref = nullptr;
+
+    uint8_t* d_mask_length_ref = out + offset;
+    auto d_mask_length =
+        zclp_encoding::encode_vl_integer(in.mask_length, d_mask_length_ref);
+    if (!d_mask_length) {
+        d_mask_length_ref = nullptr;
+        return {d_mask_length, d_mask_length.len};
+    }
+    offset += d_mask_length.len;
+    d_mask_length_ref = nullptr;
+
+    uint8_t* d_mask_ref = out + offset;
+    memcpy(d_mask_ref, in.mask, in.mask_length);
+    offset += in.mask_length;
+    d_mask_ref = nullptr;
+
+    return {true, offset};
 }
 
 size_t frame_size(const Frames::FrameVariant frame) {
