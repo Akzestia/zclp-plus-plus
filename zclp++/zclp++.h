@@ -53,6 +53,8 @@ struct EncodingResult {
     operator bool() const { return success; }
 };
 
+void printu8(const uint8_t* in, size_t len);
+
 struct VariableLengthInteger {
   private:
     uint8_t len : 2;
@@ -66,6 +68,7 @@ struct VariableLengthInteger {
     size_t byte_size() const;
 
     VariableLengthInteger& operator=(uint64_t val);
+    VariableLengthInteger& operator+=(uint64_t val);
 
     operator uint64_t() const { return value; }
     uint64_t operator()() const { return value; }
@@ -267,6 +270,13 @@ struct ClusterMask {
     size_t byte_size() const;
 };
 
+using FrameVariant =
+    std::variant<Padding, Ping, Ack, ResetStream, StopSending, Crypto, NewToken,
+                 Stream, MaxData, MaxStreamData, MaxStreams, DataBlocked,
+                 StreamDataBlocked, StreamsBlocked, NewConnectionId,
+                 RetireConnectionId, PathChallange, PathResponse,
+                 ConnectionClose, HandShakeDone, ClusterMask>;
+
 EncodingResult decode(uint8_t* in, Padding& out);
 EncodingResult decode(uint8_t* in, Ping& out);
 EncodingResult decode(uint8_t* in, AckRange& out);
@@ -290,6 +300,7 @@ EncodingResult decode(uint8_t* in, PathResponse& out);
 EncodingResult decode(uint8_t* in, ConnectionClose& out);
 EncodingResult decode(uint8_t* in, HandShakeDone& out);
 EncodingResult decode(uint8_t* in, ClusterMask& out);
+EncodingResult decode(uint8_t* in, Frames::FrameVariant& out);
 
 EncodingResult encode(const Padding& in, uint8_t*& out);
 EncodingResult encode(const Ping& in, uint8_t*& out);
@@ -314,13 +325,7 @@ EncodingResult encode(const PathResponse& in, uint8_t*& out);
 EncodingResult encode(const ConnectionClose& in, uint8_t*& out);
 EncodingResult encode(const HandShakeDone& in, uint8_t*& out);
 EncodingResult encode(const ClusterMask& in, uint8_t*& out);
-
-using FrameVariant =
-    std::variant<Padding, Ping, Ack, ResetStream, StopSending, Crypto, NewToken,
-                 Stream, MaxData, MaxStreamData, MaxStreams, DataBlocked,
-                 StreamDataBlocked, StreamsBlocked, NewConnectionId,
-                 RetireConnectionId, PathChallange, PathResponse,
-                 ConnectionClose, HandShakeDone, ClusterMask>;
+EncodingResult encode(const Frames::FrameVariant& frame, uint8_t*& out);
 
 size_t frame_size(const Frames::FrameVariant frame);
 
@@ -356,7 +361,7 @@ struct FrameResult {
     FrameVariant frame;
 
     explicit operator bool() const { return success; }
-    bool operator!() const { return success != false; }
+    bool operator!() const { return success == false; }
 };
 
 FrameResult get_frame_type(uint8_t* in);
@@ -461,6 +466,9 @@ struct Initial {
     std::vector<Frames::FrameVariant> payload;  // Frames
 
     size_t byte_size() const;
+    void add_frame(const Frames::FrameVariant& frame, bool set_len = true);
+
+    Initial() noexcept;
 };
 
 struct ZeroRTT {
