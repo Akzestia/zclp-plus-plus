@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+
 #include "../zclp++/zclp++.h"
 #include "../zclp_utils/zclp_utils.h"
 
@@ -40,6 +41,7 @@ TEST(LongHeaderTest, EncodeDecode) {
         ASSERT_EQ(lh.source_connection_id, lh_decoded.source_connection_id);
 
         delete[] encoded_buffer;
+        encoded_buffer = nullptr;
     }
 }
 
