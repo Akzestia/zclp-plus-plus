@@ -9,19 +9,26 @@ TEST(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
         uint64_t originalValue = getRandomValidValue();
 
         VariableLengthInteger vl(originalValue);
-        uint8_t* encodedData = new uint8_t[vl.byte_size()]();
-        auto encodingResult = zclp_encoding::encode_vl_integer(vl, encodedData);
-
+        uint8_t* encoded_buffer = new uint8_t[vl.byte_size()]();
+        auto enc_res = zclp_encoding::encode_vl_integer(vl, encoded_buffer);
+        if (!enc_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
         VariableLengthInteger decodedVl;
-        auto decodingResult =
-            zclp_encoding::decode_vl_integer(encodedData, decodedVl);
+        auto dec_res =
+            zclp_encoding::decode_vl_integer(encoded_buffer, decodedVl);
+        if (!dec_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
+        ASSERT_EQ(decodedVl(), vl());
+        ASSERT_EQ(decodedVl.byte_size(), vl.byte_size());
 
-        ASSERT_EQ(decodedVl(), vl()) << "Value mismatch at iteration " << i;
-        ASSERT_EQ(decodedVl.byte_size(), vl.byte_size())
-            << "Length mismatch at iteration " << i;
-
-        delete[] encodedData;
-        encodedData = nullptr;
+        delete[] encoded_buffer;
+        encoded_buffer = nullptr;
     }
 }
 
