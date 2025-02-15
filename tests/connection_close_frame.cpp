@@ -33,6 +33,12 @@ TEST(ConnectionCloseFrameTest, EncodeDecode) {
             FAIL();
         }
 
+        ASSERT_EQ(_in.type, _out.type);
+        ASSERT_EQ(_in.error, _out.error);
+        ASSERT_EQ(_in.frame_type, _out.frame_type);
+        ASSERT_EQ(_in.phrase_len, _out.phrase_len);
+        ASSERT_TRUE(std::memcmp(_in.phrase, _out.phrase, _in.phrase_len) == 0);
+
         delete[] out;
         out = nullptr;
     }
