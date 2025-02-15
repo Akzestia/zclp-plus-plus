@@ -1,8 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <cstdint>
-#include <cstdio>
-
 #include "../zclp++/zclp++.h"
 #include "../zclp_utils/zclp_utils.h"
 
