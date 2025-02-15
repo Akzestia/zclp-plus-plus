@@ -15,11 +15,21 @@ TEST(StatelessResetTest, EncodeDecode) {
         uint8_t* encoded_buffer = nullptr;
         auto enc_res =
             zclp_encoding::encode_stateless_reset(st, encoded_buffer);
+        if (!enc_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
         ASSERT_TRUE(enc_res.success);
         ASSERT_GT(enc_res.len, 0u);
         Packets::StatelessReset st_decoded;
         auto dec_res = zclp_encoding::decode_stateless_reset(
             encoded_buffer, enc_res.len, st_decoded);
+        if (!dec_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
         ASSERT_TRUE(dec_res.success);
         ASSERT_EQ(st.header_form, st_decoded.header_form);
         ASSERT_EQ(st.fixed_bit, st_decoded.fixed_bit);
