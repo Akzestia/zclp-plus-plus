@@ -1,11 +1,9 @@
 #include <gtest/gtest.h>
 
 #include "../zclp++/zclp++.h"
-#include "../zclp_utils/zclp_utils.h"
 
 TEST(HandShakeDoneFrameTest, EncodeDecode) {
     using namespace Packets;
-    using namespace zclp_test_heplers;
     using namespace Frames;
 
     for (int i = 0; i < 1000000; i++) {
