@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 
 #include <cstdint>
+#include <cstdio>
+
 #include "../zclp++/zclp++.h"
 #include "../zclp_utils/zclp_utils.h"
 
@@ -29,6 +31,7 @@ TEST(StatelessResetTest, EncodeDecode) {
             ASSERT_EQ(st.reset_token[j], st_decoded.reset_token[j]);
         }
         delete[] encoded_buffer;
+        encoded_buffer = nullptr;
     }
 }
 

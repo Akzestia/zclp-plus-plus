@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 
 void printu8(const uint8_t* in, size_t len) {
     for (size_t i = 0; i < len; i++) {
@@ -97,44 +98,49 @@ EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out) {
 
 EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
                                       uint8_t*& out) {
+    size_t offset = 1;
     size_t len = in.byte_size();
     out = new uint8_t[len]();
-
-    uint8_t* vl_out;
+    uint8_t* vl_out = out + offset;
     auto enc_res = encode_vl_integer(in.unpredictable_bits, vl_out);
+    if (!enc_res) {
+        vl_out = nullptr;
+        return {enc_res, enc_res.len};
+    }
+    offset += enc_res.len;
+    vl_out = nullptr;
 
-    for (int i = 0; i < enc_res.len; i++)
-        memcpy(out + i + 1, &vl_out[i], 1);
-    memcpy(out + enc_res.len + 1, in.reset_token, 16);
+    uint8_t* reset_token_ref = out + offset;
+    memcpy(reset_token_ref, in.reset_token, 16);
+    reset_token_ref = nullptr;
     shift_left(out, len, 6);
+
     out[0] |= (in.header_form << 7);
     out[0] |= (in.fixed_bit << 6);
-    delete[] vl_out;
-    vl_out = nullptr;
     return {true, len};
 }
 
 EncodingResult decode_stateless_reset(uint8_t* in, size_t in_len,
                                       Packets::StatelessReset& out) {
-    uint8_t HF = ((in[0] >> 7) & 1);
-    uint8_t FB = ((in[0] >> 6) & 1);
+    size_t offset = 0;
 
-    out.header_form = HF;
-    out.fixed_bit = FB;
+    out.header_form = ((in[offset] >> 7) & 1);
+    out.fixed_bit = ((in[offset++] >> 6) & 1);
 
     shift_right(in, in_len, 6);
 
-    VariableLengthInteger vl_out;
-    zclp_encoding::decode_vl_integer(in + 1, vl_out);
-
-    out.unpredictable_bits = vl_out;
-
-    size_t token_offset = in_len - 16;
-
-    for (int i = token_offset; i < in_len; i++) {
-        uint8_t token_value = in[i];
-        out.reset_token[i - token_offset] = token_value;
+    uint8_t* d_res_unpredictable_bits_ref = in + offset;
+    auto res_unpredictable_bits = zclp_encoding::decode_vl_integer(
+        d_res_unpredictable_bits_ref, out.unpredictable_bits);
+    if (!res_unpredictable_bits) {
+        d_res_unpredictable_bits_ref = nullptr;
+        return res_unpredictable_bits;
     }
+    offset += res_unpredictable_bits.len;
+    d_res_unpredictable_bits_ref = nullptr;
+
+    uint8_t* d_reset_token_ref = in + offset;
+    memcpy(&out.reset_token, d_reset_token_ref, 16);
     return {true, in_len};
 }
 
@@ -142,7 +148,6 @@ EncodingResult encode_version_negotiation(const Packets::VersionNegotiation& in,
                                           uint8_t*& out) {
     size_t len = in.byte_size();
     out = new uint8_t[len]();
-
     uint8_t offset = 1;
     // 4 - bytes u32
     memcpy(out + offset, &in.version_id, 4);
@@ -196,7 +201,7 @@ EncodingResult decode_version_negotiation(uint8_t* in, size_t in_len,
 EncodingResult encode_long_header(const Packets::LongHeader& in,
                                   uint8_t*& out) {
     size_t len = in.byte_size();
-    // out = new uint8_t[len]();
+    out = new uint8_t[len]();
 
     out[0] |= (in.header_form << 7);
     out[0] |= (in.fixed_bit << 6);

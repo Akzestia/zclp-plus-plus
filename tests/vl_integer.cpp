@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cstdint>
 #include <cstdio>
 
 #include "../zclp++/zclp++.h"
@@ -11,7 +12,7 @@ TEST(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
         uint64_t originalValue = getRandomValidValue();
 
         VariableLengthInteger vl(originalValue);
-        uint8_t* encodedData;
+        uint8_t* encodedData = new uint8_t[vl.byte_size()]();
         auto encodingResult = zclp_encoding::encode_vl_integer(vl, encodedData);
 
         VariableLengthInteger decodedVl;
@@ -23,6 +24,7 @@ TEST(VariableLengthIntegerTest, EncodeDecodeCorrectness) {
             << "Length mismatch at iteration " << i;
 
         delete[] encodedData;
+        encodedData = nullptr;
     }
 }
 
@@ -37,7 +39,7 @@ TEST(VariableLengthIntegerTest, EdgeCaseValues) {
         uint64_t originalValue = edge_cases[i];
 
         VariableLengthInteger vl(originalValue);
-        uint8_t* encodedData;
+        uint8_t* encodedData = new uint8_t[vl.byte_size()]();
         auto encodingResult = zclp_encoding::encode_vl_integer(vl, encodedData);
 
         VariableLengthInteger decodedVl;
@@ -48,6 +50,7 @@ TEST(VariableLengthIntegerTest, EdgeCaseValues) {
             << "Edge case length mismatch for value: " << vl.byte_size();
 
         delete[] encodedData;
+        encodedData = nullptr;
     }
 }
 

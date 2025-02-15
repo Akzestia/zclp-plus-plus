@@ -39,6 +39,7 @@ TEST(ProtectedLongHeaderTest, EncodeDecode) {
         ASSERT_EQ(plh.source_connection_id, plh_decoded.source_connection_id);
 
         delete[] encoded_buffer;
+        encoded_buffer = nullptr;
     }
 }
 
