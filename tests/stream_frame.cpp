@@ -11,6 +11,9 @@ TEST(StreamFrameTest, EncodeDecode) {
     for (int i = 0; i < 1000000; i++) {
         Stream _in(getSpecifiedDistribution(1000, 1500)), _out;
         _in.stream_id = getRandomValidValue();
+        _in.off = getRandomBit();
+        _in.len = getRandomBit();
+        _in.fin = getRandomBit();
         fill_random(_in.stream_data, _in.length);
         uint8_t* out = new uint8_t[_in.byte_size()]();
 
