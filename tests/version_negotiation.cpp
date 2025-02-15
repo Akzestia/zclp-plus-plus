@@ -43,6 +43,7 @@ TEST(VersionNegotiationTest, EncodeDecode) {
         }
 
         delete[] encoded_buffer;
+        encoded_buffer = nullptr;
     }
 }
 
