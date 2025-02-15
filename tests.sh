@@ -1,6 +1,7 @@
 #!/bin/bash
 
-EXCLUDED_TESTS=("server_async padding_frame")
+# padding_frame
+EXCLUDED_TESTS=("server_async")
 ICyan='\033[0;96m'
 IRed='\033[0;91m'
 IGreen='\033[0;92m'
