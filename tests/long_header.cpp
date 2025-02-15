@@ -20,12 +20,22 @@ TEST(LongHeaderTest, EncodeDecode) {
 
         uint8_t* encoded_buffer = nullptr;
         auto enc_res = zclp_encoding::encode_long_header(lh, encoded_buffer);
+        if (!enc_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
         ASSERT_TRUE(enc_res.success);
         ASSERT_GT(enc_res.len, 0u);
 
         Packets::LongHeader lh_decoded;
         auto dec_res = zclp_encoding::decode_long_header(
             encoded_buffer, enc_res.len, lh_decoded);
+        if (!dec_res) {
+            delete[] encoded_buffer;
+            encoded_buffer = nullptr;
+            FAIL();
+        }
         ASSERT_TRUE(dec_res.success);
 
         ASSERT_EQ(lh.header_form, lh_decoded.header_form);
