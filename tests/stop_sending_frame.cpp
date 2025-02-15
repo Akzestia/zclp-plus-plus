@@ -30,6 +30,10 @@ TEST(StopSendingFrameTest, EncodeDecode) {
             FAIL();
         }
 
+        ASSERT_EQ(_in.type, _out.type);
+        ASSERT_EQ(_in.stream_id, _out.stream_id);
+        ASSERT_EQ(_in.error_code, _out.error_code);
+
         delete[] out;
         out = nullptr;
     }
