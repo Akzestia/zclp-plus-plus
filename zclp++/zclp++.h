@@ -51,6 +51,7 @@ struct EncodingResult {
 
     bool operator!() { return success == false; }
     operator bool() const { return success; }
+    operator uint64_t() const { return len; }
 };
 
 void printu8(const uint8_t* in, size_t len);
