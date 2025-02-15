@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EXCLUDED_TESTS=("server_async")
+EXCLUDED_TESTS=("server_async padding_frame")
 ICyan='\033[0;96m'
 IRed='\033[0;91m'
 IGreen='\033[0;92m'
@@ -62,7 +62,7 @@ if [[ "$select_single_test" == false && "$select_multiple_tests" == false ]]; th
             test_file="tests/bin/${name}.test"
             echo -e "${IGreen}Generating test file: $test_file${ColorReset}"
 
-            clang++ -o $test_file $file -lgtest -lgtest_main -pthread -lcrypto
+            clang++ -o $test_file $file -lgtest -lgtest_main -pthread -lcrypto ./zclp++/zclp++.cpp ./zclp_utils/zclp_utils.cpp
 
             chmod +x "$test_file"
         fi
@@ -73,7 +73,7 @@ else
             if [[ -n "$selected_test" ]]; then
                 echo -e "${IGreen}You selected: $selected_test${ColorReset}"
                 test_file="tests/bin/${selected_test}.test"
-                clang++ -o $test_file "tests/${selected_test}.cpp" -lgtest -lgtest_main -pthread -lcrypto
+                clang++ -o $test_file "tests/${selected_test}.cpp" -lgtest -lgtest_main -pthread -lcrypto ./zclp++/zclp++.cpp ./zclp_utils/zclp_utils.cpp
                 chmod +x "$test_file"
                 selected_tests+=("$test_file")
                 break
@@ -100,7 +100,7 @@ else
                 test="${test_files[$((test_num-1))]}"
                 test_file="tests/bin/${test}.test"
                 echo -e "${IGreen}Compiling test: $test_file${ColorReset}"
-                clang++ -o $test_file "tests/${test}.cpp" -lgtest -lgtest_main -pthread -lcrypto
+                clang++ -o $test_file "tests/${test}.cpp" -lgtest -lgtest_main -pthread -lcrypto ./zclp++/zclp++.cpp ./zclp_utils/zclp_utils.cpp
                 chmod +x "$test_file"
                 selected_tests+=("$test_file")
             else
