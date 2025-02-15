@@ -13,11 +13,13 @@ TEST(PingFrameTest, EncodeDecode) {
         uint8_t* out = new uint8_t[_in.byte_size()]();
         auto enc_res = encode(_in, out);
         if (!enc_res) {
+            delete[] out;
             out = nullptr;
             FAIL();
         }
         auto dec_res = decode(out, _out);
         if (!dec_res) {
+            delete[] out;
             out = nullptr;
             FAIL();
         }
