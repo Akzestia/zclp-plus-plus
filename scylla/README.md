@@ -1,4 +1,4 @@
-### Scylla Cluster Api
+### Scylla Cluster API
 
 > [!NOTE]
 > I highly recommend using [rust](https://github.com/Akzestia/zclp-rs) implementation,
