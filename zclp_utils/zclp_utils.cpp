@@ -1,5 +1,6 @@
 #include "zclp_utils.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -852,6 +853,11 @@ std::mt19937_64 rng{std::random_device{}()};
     in case if types would change in the future
 */
 
+uint64_t getSpecifiedDistribution(uint64_t a, uint64_t b) {
+    std::uniform_int_distribution<uint32_t> dist(a, b);
+    return dist(rng);
+}
+
 uint32_t getRandomVersionID() {
     std::uniform_int_distribution<uint32_t> dist(0, 0xFFFFFFFF);
     return dist(rng);
@@ -907,13 +913,18 @@ uint32_t getRandomPacketNumber() {
 }
 
 void fill_random(uint8_t* data, size_t len) {
-    std::random_device rd;
-    std::mt19937 engine(rd());
-    std::uniform_int_distribution<uint16_t> dist(0, 255);
+    static thread_local std::mt19937 engine(std::random_device{}());
+    static thread_local std::uniform_int_distribution<uint64_t> dist(
+        0, UINT64_MAX);
 
-    for (size_t i = 0; i < len; ++i) {
-        data[i] = static_cast<uint8_t>(dist(engine));
-    }
+    uint64_t* data64_start = reinterpret_cast<uint64_t*>(data);
+    uint64_t* data64_end = data64_start + (len / sizeof(uint64_t));
+
+    std::generate(data64_start, data64_end, [&]() { return dist(engine); });
+
+    uint8_t* byte_start = reinterpret_cast<uint8_t*>(data64_end);
+    std::generate(byte_start, data + len,
+                  [&]() { return static_cast<uint8_t>(dist(engine)); });
 }
 
 void fill_stateless_reset(Packets::StatelessReset& st) {
