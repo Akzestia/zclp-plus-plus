@@ -1,9 +1,9 @@
 ### Scylla Cluster API
 
 > [!NOTE]
-> I highly recommend using [rust](https://github.com/Akzestia/zclp-rs) implementation,
-> cause c++ one takes at least 10 times more code to be written for the same functionality xD
+> [Rust](https://github.com/Akzestia/zclp-rs) 実装の使用を強くお勧めします。
+> C++ では同じ機能のために少なくとも 10 倍のコードを書く必要があるためです xD
 
 > [!IMPORTANT]
-> Both implementation work in the exact same way so u can use whichever u want,
-> but as mentioned before, c++ takes more time to write
+> どちらの実装もまったく同じように機能するため、どちらでも使用できます。
+> ただし、前述のように、C++ の方が記述に時間がかかります
