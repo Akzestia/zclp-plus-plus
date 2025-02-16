@@ -1,6 +1,6 @@
 # zclp++
 
-[🇺🇸 英語](README.md) | [🇯🇵 日本語](README_jap.md)
+[🇺🇸 English](README.md) | [🇯🇵 日本語](README_jap.md)
 
 <img src="assets/image 1.png"/>
 
