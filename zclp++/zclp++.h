@@ -95,11 +95,13 @@ namespace Frames {
 struct Padding {
     VariableLengthInteger type;  // 0
     size_t byte_size() const;
+    [[nodiscard]] Padding() noexcept;
 };
 
 struct Ping {
     VariableLengthInteger type;  // 1
     size_t byte_size() const;
+    [[nodiscard]] Ping() noexcept;
 };
 
 struct AckRange {
@@ -124,6 +126,7 @@ struct Ack {
     std::optional<EcnCount> ecn_count;  // FT.Value == 3
 
     size_t byte_size() const;
+    [[nodiscard]] Ack() noexcept;
 };
 
 struct ResetStream {
@@ -133,6 +136,7 @@ struct ResetStream {
     VariableLengthInteger final_size;
 
     size_t byte_size() const;
+    [[nodiscard]] ResetStream() noexcept;
 };
 
 struct StopSending {
@@ -141,6 +145,7 @@ struct StopSending {
     VariableLengthInteger error_code;
 
     size_t byte_size() const;
+    [[nodiscard]] StopSending() noexcept;
 };
 
 struct Crypto {
@@ -150,6 +155,10 @@ struct Crypto {
     uint8_t* data;
 
     size_t byte_size() const;
+    void set_length(uint64_t len);
+    [[nodiscard]] Crypto() noexcept;
+    [[nodiscard]] Crypto(uint64_t length) noexcept;
+    ~Crypto() noexcept;
 };
 
 struct NewToken {
@@ -158,6 +167,9 @@ struct NewToken {
     uint8_t* token;
 
     size_t byte_size() const;
+    [[nodiscard]] NewToken() noexcept;
+    [[nodiscard]] NewToken(uint64_t length) noexcept;
+    ~NewToken() noexcept;
 };
 
 struct Stream {
@@ -171,6 +183,8 @@ struct Stream {
     uint8_t* stream_data;
 
     size_t byte_size() const;
+    [[nodiscard]] Stream() noexcept;
+    [[nodiscard]] Stream(uint64_t length) noexcept;
 };
 
 struct MaxData {
@@ -178,6 +192,7 @@ struct MaxData {
     VariableLengthInteger max_data;
 
     size_t byte_size() const;
+    [[nodiscard]] MaxData() noexcept;
 };
 
 struct MaxStreamData {
@@ -186,6 +201,7 @@ struct MaxStreamData {
     VariableLengthInteger max_stream_data;
 
     size_t byte_size() const;
+    [[nodiscard]] MaxStreamData() noexcept;
 };
 
 struct MaxStreams {
@@ -193,6 +209,8 @@ struct MaxStreams {
     VariableLengthInteger max_streams;
 
     size_t byte_size() const;
+
+    [[nodiscard]] MaxStreams() noexcept;
 };
 
 struct DataBlocked {
@@ -200,6 +218,7 @@ struct DataBlocked {
     VariableLengthInteger data_limit;
 
     size_t byte_size() const;
+    [[nodiscard]] DataBlocked() noexcept;
 };
 
 struct StreamDataBlocked {
@@ -208,6 +227,7 @@ struct StreamDataBlocked {
     VariableLengthInteger stream_data_limit;
 
     size_t byte_size() const;
+    [[nodiscard]] StreamDataBlocked() noexcept;
 };
 
 struct StreamsBlocked {
@@ -215,6 +235,7 @@ struct StreamsBlocked {
     VariableLengthInteger stream_limit;
 
     size_t byte_size() const;
+    [[nodiscard]] StreamsBlocked() noexcept;
 };
 
 struct NewConnectionId {
@@ -225,6 +246,7 @@ struct NewConnectionId {
     uint8_t stateless_reset_token[16];
 
     size_t byte_size() const;
+    [[nodiscard]] NewConnectionId() noexcept;
 };
 
 struct RetireConnectionId {
@@ -232,6 +254,7 @@ struct RetireConnectionId {
     VariableLengthInteger sequence_number;
 
     size_t byte_size() const;
+    [[nodiscard]] RetireConnectionId() noexcept;
 };
 
 struct PathChallange {
@@ -239,6 +262,7 @@ struct PathChallange {
     uint64_t data;
 
     size_t byte_size() const;
+    [[nodiscard]] PathChallange() noexcept;
 };
 
 struct PathResponse {
@@ -246,6 +270,7 @@ struct PathResponse {
     uint64_t data;
 
     size_t byte_size() const;
+    [[nodiscard]] PathResponse() noexcept;
 };
 
 struct ConnectionClose {
@@ -256,12 +281,17 @@ struct ConnectionClose {
     uint8_t* phrase;
 
     size_t byte_size() const;
+    void set_phrase_len(uint64_t phrase_len);
+    [[nodiscard]] ConnectionClose() noexcept;
+    [[nodiscard]] ConnectionClose(uint64_t phrase_len) noexcept;
+    ~ConnectionClose() noexcept;
 };
 
 struct HandShakeDone {
     VariableLengthInteger type;  // 30
 
     size_t byte_size() const;
+    [[nodiscard]] HandShakeDone() noexcept;
 };
 
 struct ClusterMask {
@@ -269,6 +299,10 @@ struct ClusterMask {
     VariableLengthInteger mask_length;
     uint8_t* mask;
     size_t byte_size() const;
+    void set_mask_len(uint64_t len);
+    [[nodiscard]] ClusterMask() noexcept;
+    [[nodiscard]] ClusterMask(uint64_t mask_length) noexcept;
+    ~ClusterMask() noexcept;
 };
 
 using FrameVariant =
