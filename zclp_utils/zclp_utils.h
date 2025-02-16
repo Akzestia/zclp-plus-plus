@@ -94,6 +94,8 @@ EncodingResult decode_short_header(uint8_t* in, size_t in_len,
 
 namespace zclp_tls {
 
+bool derive_hp_key();
+
 void print_hex(const unsigned char* data, size_t length);
 
 void init();
@@ -181,6 +183,8 @@ namespace zclp_test_heplers {
     2 separate methods for connection & version IDs
     in case if types would change in the future
 */
+
+uint64_t getSpecifiedDistribution(uint64_t a, uint64_t b);
 
 uint32_t getRandomVersionID();
 
