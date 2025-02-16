@@ -89,7 +89,8 @@ void Server::process_udp_pack(uint8_t* packet, ssize_t len) {
     printf("Received message: %.*s\n", (int)len, packet);
 
     Packets::PacketType PT = Packets::get_packet_type(packet);
-    if (!PT) {
+
+    if (!PT || PT == Packets::PacketType::PACKET_UNKNOWN) {
         delete[] packet;
         packet = nullptr;
         return;
