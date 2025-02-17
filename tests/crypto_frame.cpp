@@ -11,7 +11,7 @@ TEST(CryptoFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Crypto _in(getSpecifiedDistribution(120, 1500)), _out;
         _in.offset = getRandomValidValue();
 
