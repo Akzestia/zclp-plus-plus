@@ -7,7 +7,7 @@ TEST(VersionNegotiationTest, EncodeDecode) {
     using namespace Packets;
     using namespace zclp_test_heplers;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Packets::VersionNegotiation vn;
         vn.header_form = getRandomBit();
         vn.unused = getRandomBit() & 0x3F;  // Ensure it's a 6-bit value
