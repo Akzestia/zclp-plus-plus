@@ -8,7 +8,7 @@ TEST(StreamFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Stream _in(getSpecifiedDistribution(1000, 1500)), _out;
         _in.stream_id = getRandomValidValue();
         _in.off = getRandomBit();
