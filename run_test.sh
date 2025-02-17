@@ -23,7 +23,12 @@ if [[ $# -eq 0 ]]; then
     if [ "$user_input" == "" ]; then
         for file in "${test_files[@]}"; do
             echo "Running test: $file"
-            "$file"
+            result=$("$file");
+
+            if echo "$result" | grep "FAILED"; then
+                echo "Test failed: $file"
+                exit 1
+            fi
         done
     elif [[ "$user_input" =~ ^[0-9]+$ && $user_input -ge 0 && $user_input -lt ${#test_files[@]} ]]; then
         echo "Running test: ${test_files[$user_input]}"
