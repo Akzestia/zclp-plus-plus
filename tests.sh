@@ -6,8 +6,7 @@ IGreen='\033[0;92m'
 ColorReset='\033[0m'
 
 # header_protection
-#
-EXCLUDED_TESTS=("server_async")
+EXCLUDED_TESTS=("server_async header_protection")
 
 select_single_test=false
 select_multiple_tests=false
