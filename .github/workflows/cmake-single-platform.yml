@@ -1,0 +1,47 @@
+# Integrity
+name: Frames & Packets tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Restore APT Cache
+      id: cache-apt
+      uses: actions/cache@v3
+      with:
+        path: /var/cache/apt
+        key: apt-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          apt-${{ runner.os }}-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libgtest-dev libssl-dev ninja-build
+
+    - name: Restore CMake Build Cache
+      id: cache-cmake
+      uses: actions/cache@v3
+      with:
+        path: tests/build
+        key: cmake-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt') }}
+        restore-keys: |
+          cmake-${{ runner.os }}-
+    
+    - name: Test
+      working-directory: ${{github.workspace}}
+      run: |
+        set -e
+        ./tests.sh --no-confirm
