@@ -1,5 +1,5 @@
 # Integrity
-name: CMake on a single platform
+name: Frames & Packets tests
 
 on:
   push:
