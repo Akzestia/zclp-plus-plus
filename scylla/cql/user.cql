@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS Users
 
     joined_at   TIMESTAMP,
 
-    PRIMARY KEY ((public_name), id)
+    PRIMARY KEY ((public_name), Id)
 );
 
 CREATE TABLE IF NOT EXISTS LastVisitedCluster
@@ -17,5 +17,7 @@ CREATE TABLE IF NOT EXISTS LastVisitedCluster
     Id           UUID,
     cluster      TEXT,
     user         TEXT,
-    cluster_mask TEXT
+    cluster_mask TEXT,
+
+    PRIMARY KEY ((user))
 );
