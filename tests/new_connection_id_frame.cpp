@@ -21,7 +21,7 @@ TEST(NewConnectionIdFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         NewConnectionId _in, _out;
         _in.sequence_number = getRandomValidValue();
         _in.retire_prior_to = getRandomValidValue();

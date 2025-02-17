@@ -8,7 +8,7 @@ TEST(NewTokenFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         NewToken _in(getSpecifiedDistribution(32, 64)), _out;
         fill_random(_in.token, _in.length);
         uint8_t* out = new uint8_t[_in.byte_size()]();

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(tests)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 
 option(BUILD_ACK_FRAME "Build the ack_frame test" OFF)
 option(BUILD_CONNECTION_CLOSE_FRAME "Build the connection_close_frame test" OFF)

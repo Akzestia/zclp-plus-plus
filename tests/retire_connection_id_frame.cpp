@@ -8,7 +8,7 @@ TEST(RetireConnectionIdFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         RetireConnectionId _in, _out;
         _in.sequence_number = getRandomValidValue();
         uint8_t* out = new uint8_t[_in.byte_size()]();

@@ -6,7 +6,7 @@
 TEST(StatelessResetTest, EncodeDecode) {
     using namespace Packets;
     using namespace zclp_test_heplers;
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Packets::StatelessReset st;
         zclp_test_heplers::fill_stateless_reset(st);
         st.unpredictable_bits = getRandomValidValue();

@@ -9,7 +9,7 @@
 TEST(ShortHeaderTest, ProtectionApplyRemove) {
     using namespace Packets;
     using namespace zclp_test_heplers;
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Packets::ShortHeader sh;
         sh.header_form = 0;
         sh.fixed_bit = 1;

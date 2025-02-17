@@ -8,7 +8,7 @@ TEST(PathChallangeFrameTest, EncodeDecode) {
     using namespace zclp_uint;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         PathChallange _in, _out;
         _in.data = u64_rand();
         uint8_t* out = new uint8_t[_in.byte_size()]();

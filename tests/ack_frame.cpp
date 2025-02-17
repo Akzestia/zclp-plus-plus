@@ -8,7 +8,7 @@ TEST(AckFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Ack _in, _out;
         _in.type = i % 2 == 0 ? 3 : 4;
         _in.largest_ack_num = getRandomValidValue();

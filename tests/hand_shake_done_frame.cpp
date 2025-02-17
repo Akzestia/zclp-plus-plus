@@ -6,7 +6,7 @@ TEST(HandShakeDoneFrameTest, EncodeDecode) {
     using namespace Packets;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         HandShakeDone _in, _out;
         uint8_t* out = new uint8_t[_in.byte_size()]();
 

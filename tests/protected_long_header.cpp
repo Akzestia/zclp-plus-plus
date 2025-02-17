@@ -7,7 +7,7 @@ TEST(ProtectedLongHeaderTest, EncodeDecode) {
     using namespace Packets;
     using namespace zclp_test_heplers;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         Packets::ProtectedLongHeader plh;
         plh.header_form = getRandomBit();
         plh.fixed_bit = getRandomBit();

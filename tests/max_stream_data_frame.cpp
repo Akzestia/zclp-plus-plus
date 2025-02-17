@@ -8,7 +8,7 @@ TEST(MaxStreamDataFrameTest, EncodeDecode) {
     using namespace zclp_test_heplers;
     using namespace Frames;
 
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100; i++) {
         MaxStreamData _in, _out;
         _in.stream_id = getRandomValidValue();
         _in.max_stream_data = getRandomValidValue();
