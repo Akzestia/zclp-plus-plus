@@ -94,7 +94,7 @@ EncodingResult decode_short_header(uint8_t* in, size_t in_len,
 
 namespace zclp_tls {
 
-bool derive_hp_key();
+bool derive_hp_key(uint32_t connection_id, uint8_t*& out);
 
 void print_hex(const unsigned char* data, size_t length);
 
