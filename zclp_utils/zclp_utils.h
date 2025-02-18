@@ -5,6 +5,7 @@
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#include <openssl/kdf.h>
 #include <openssl/pem.h>
 #include <openssl/rand.h>
 #include <sys/types.h>
@@ -15,6 +16,7 @@
 #include <cstdio>
 #include <cstring>
 #include <random>
+#include <stdexcept>
 
 #include "../zclp++/zclp++.h"
 
