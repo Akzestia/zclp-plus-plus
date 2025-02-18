@@ -444,6 +444,10 @@ namespace zclp_tls {
 const char* CERT_STORE_PRIVATE = "user/certs/private_key.pem";
 const char* CERT_STORE_PUBLIC = "user/certs/public_key.pem";
 
+bool derive_hp_key(uint32_t connection_id, uint8_t*& out) {
+    return true;
+}
+
 void print_hex(const unsigned char* data, size_t length) {
     for (size_t i = 0; i < length; ++i)
         printf("%02x", data[i]);
