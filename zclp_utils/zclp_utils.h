@@ -34,13 +34,12 @@ bool is_short_header(uint8_t first_byte);
 
 namespace zclp_encoding {
 
-inline size_t get_vl_len(const uint8_t* in);
+size_t get_vl_len(const uint8_t* in);
 
 EncodingResult encode_vl_integer(const VariableLengthInteger& in,
                                  uint8_t*& out);
 
-extern EncodingResult decode_vl_integer(uint8_t* in,
-                                        VariableLengthInteger& out);
+EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out);
 EncodingResult encode_stateless_reset(const Packets::StatelessReset& in,
                                       uint8_t*& out);
 
@@ -94,7 +93,36 @@ EncodingResult decode_short_header(uint8_t* in, size_t in_len,
 
 namespace zclp_tls {
 
-bool derive_hp_key(uint32_t connection_id, uint8_t*& out);
+/*
+QUIC packets have varying protections depending on their type:
+
+Version Negotiation packets have no cryptographic protection.
+
+Retry packets use AEAD_AES_128_GCM to provide protection against accidental
+modification and to limit the entities that can produce a valid Retry; see
+Section 5.8.
+
+Initial packets use AEAD_AES_128_GCM with keys derived from the
+Destination Connection ID field of the first Initial packet sent by the client;
+see Section 5.2.
+
+All other packets have strong cryptographic protections for
+confidentiality and integrity, using keys and algorithms negotiated by TLS.
+*/
+
+enum HP_KEY_TYPE : uint8_t {
+    CLIENT = 0,
+    SERVER = 1,
+};
+
+std::vector<uint8_t> hkdf_extract(const std::vector<uint8_t>& salt,
+                                  const std::vector<uint8_t>& ikm);
+
+std::vector<uint8_t> hkdf_expand_label(const std::vector<uint8_t>& prk,
+                                       const std::string& label, size_t length);
+
+std::vector<uint8_t> derive_hp_key(const std::vector<uint8_t>& dst_connection_id,
+                                   HP_KEY_TYPE type);
 
 void print_hex(const unsigned char* data, size_t length);
 
@@ -183,6 +211,8 @@ namespace zclp_test_heplers {
     2 separate methods for connection & version IDs
     in case if types would change in the future
 */
+
+std::vector<uint8_t> u32ToVecU8(uint32_t value);
 
 uint64_t getSpecifiedDistribution(uint64_t a, uint64_t b);
 
