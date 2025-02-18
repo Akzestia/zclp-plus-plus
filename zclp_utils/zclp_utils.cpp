@@ -444,10 +444,6 @@ namespace zclp_tls {
 const char* CERT_STORE_PRIVATE = "user/certs/private_key.pem";
 const char* CERT_STORE_PUBLIC = "user/certs/public_key.pem";
 
-bool derive_hp_key(uint32_t connection_id, uint8_t*& out) {
-    return true;
-}
-
 void print_hex(const unsigned char* data, size_t length) {
     for (size_t i = 0; i < length; ++i)
         printf("%02x", data[i]);
@@ -755,6 +751,78 @@ constexpr std::array<uint8_t, 20> quic_v1_salt = {
     0xef, 0x4f, 0x5f, 0x57, 0x84, 0x90, 0xa3, 0x68, 0x9c, 0x76,
     0x6b, 0xee, 0xfd, 0x4a, 0x2a, 0xe6, 0x0a, 0x44, 0x9f, 0x17};
 
+std::vector<uint8_t> hkdf_extract(const std::vector<uint8_t>& salt,
+                                  const std::vector<uint8_t>& ikm) {
+    std::vector<uint8_t> prk(EVP_MAX_MD_SIZE);
+    size_t prk_len;
+
+    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if (EVP_PKEY_derive_init(pctx) <= 0
+        || EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXTRACT_ONLY) <= 0
+        || EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()) <= 0
+        || EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt.data(), salt.size()) <= 0
+        || EVP_PKEY_CTX_set1_hkdf_key(pctx, ikm.data(), ikm.size()) <= 0
+        || EVP_PKEY_derive(pctx, prk.data(), &prk_len) <= 0) {
+        EVP_PKEY_CTX_free(pctx);
+        throw std::runtime_error("HKDF-Extract failed");
+    }
+    EVP_PKEY_CTX_free(pctx);
+    prk.resize(prk_len);
+    return prk;
+}
+
+std::vector<uint8_t> hkdf_expand_label(const std::vector<uint8_t>& prk,
+                                       const std::string& label,
+                                       size_t length) {
+    std::vector<uint8_t> okm(length);
+    std::string full_label = label;
+    uint16_t full_label_len = static_cast<uint16_t>(full_label.size());
+    uint16_t length_be = htons(static_cast<uint16_t>(length));
+
+    std::vector<uint8_t> info;
+    info.push_back(static_cast<uint8_t>(length_be >> 8));
+    info.push_back(static_cast<uint8_t>(length_be & 0xFF));
+    info.push_back(static_cast<uint8_t>(full_label_len));
+    info.insert(info.end(), full_label.begin(), full_label.end());
+    info.push_back(0x00);
+
+    EVP_PKEY_CTX* pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if (EVP_PKEY_derive_init(pctx) <= 0
+        || EVP_PKEY_CTX_hkdf_mode(pctx, EVP_PKEY_HKDEF_MODE_EXPAND_ONLY) <= 0
+        || EVP_PKEY_CTX_set_hkdf_md(pctx, EVP_sha256()) <= 0
+        || EVP_PKEY_CTX_set1_hkdf_key(pctx, prk.data(), prk.size()) <= 0
+        || EVP_PKEY_CTX_add1_hkdf_info(pctx, info.data(), info.size()) <= 0
+        || EVP_PKEY_derive(pctx, okm.data(), &length) <= 0) {
+        EVP_PKEY_CTX_free(pctx);
+        throw std::runtime_error("HKDF-Expand-Label failed");
+    }
+    EVP_PKEY_CTX_free(pctx);
+    return okm;
+}
+
+std::vector<uint8_t> derive_hp_key(
+    const std::vector<uint8_t>& dst_connection_id, HP_KEY_TYPE type) {
+    std::vector<uint8_t> initial_secret = hkdf_extract(
+        std::vector<uint8_t>(std::begin(quic_v1_salt), std::end(quic_v1_salt)),
+        dst_connection_id);
+
+    std::vector<uint8_t> quic_hp_key;
+    if (type == CLIENT) {
+        std::vector<uint8_t> client_initial_secret =
+            hkdf_expand_label(initial_secret, "client in", 32);
+
+        quic_hp_key = hkdf_expand_label(client_initial_secret, "quic hp", 16);
+    }
+    if (type == SERVER) {
+        std::vector<uint8_t> client_initial_secret =
+            hkdf_expand_label(initial_secret, "server in", 32);
+
+        quic_hp_key = hkdf_expand_label(client_initial_secret, "quic hp", 16);
+    }
+
+    return quic_hp_key;
+}
+
 MaskResult generate_mask(const std::array<uint8_t, 16>& hp_key,
                          const std::vector<uint8_t>& sample) {
     if (sample.size() < SAMPLE_LENGTH) {
@@ -856,6 +924,13 @@ std::mt19937_64 rng{std::random_device{}()};
     2 separate methods for connection & version IDs
     in case if types would change in the future
 */
+
+std::vector<uint8_t> u32ToVecU8(uint32_t value) {
+    return {static_cast<uint8_t>(value & 0xFF),
+            static_cast<uint8_t>((value >> 8) & 0xFF),
+            static_cast<uint8_t>((value >> 16) & 0xFF),
+            static_cast<uint8_t>((value >> 24) & 0xFF)};
+}
 
 uint64_t getSpecifiedDistribution(uint64_t a, uint64_t b) {
     std::uniform_int_distribution<uint32_t> dist(a, b);
