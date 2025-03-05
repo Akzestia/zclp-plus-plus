@@ -11,6 +11,35 @@
 
 #include "../tokio-cpp/tokio.hpp"
 
+/*
+    Function results
+
+    All functions MUST return struct result, with minimum implementation of
+    success and result. Optionally containing additional fields.
+
+    struct Result {
+        type success
+        type data | result | payload
+        ..
+    };
+
+    Result void func();
+
+    ------------------------------------------------------------------------
+
+    For placeholder values bool MUST be used.
+
+    bool void func();
+
+    ------------------------------------------------------------------------
+
+    All Result structs SHOULD implement operator!();
+
+    if(!Result){
+        handle error
+    }
+*/
+
 Server::Server(uint16_t listener_port, uint16_t sender_port) noexcept
     : m_max_mtu(1500),
       m_listener_port(listener_port),
