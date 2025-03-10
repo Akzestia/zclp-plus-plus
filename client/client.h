@@ -6,6 +6,35 @@
 
 #include "../zclp_utils/zclp_utils.h"
 
+/*
+    Function results
+
+    All functions MUST return struct result, with minimum implementation of
+    success and result. Optionally containing additional fields.
+
+    struct Result {
+        type success
+        type data | result | payload
+        ..
+    };
+
+    Result void func();
+
+    ------------------------------------------------------------------------
+
+    For placeholder values bool MUST be used.
+
+    bool void func();
+
+    ------------------------------------------------------------------------
+
+    All Result structs SHOULD implement operator!();
+
+    if(!Result){
+        handle error
+    }
+*/
+
 struct Client {
     [[nodiscard]] bool run();
     [[nodiscard]] Client(uint16_t port) noexcept;
