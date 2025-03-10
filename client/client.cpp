@@ -10,6 +10,35 @@
 
 #include "../tokio-cpp/tokio.hpp"
 
+/*
+    Function results
+
+    All functions MUST return struct result, with minimum implementation of
+    success and result. Optionally containing additional fields.
+
+    struct Result {
+        type success
+        type data | result | payload
+        ..
+    };2
+
+    Result void func();
+
+    ------------------------------------------------------------------------
+
+    For placeholder values bool MUST be used.
+
+    bool void func();
+
+    ------------------------------------------------------------------------
+
+    All Result structs SHOULD implement operator!();
+
+    if(!Result){
+        handle error
+    }
+*/
+
 Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
     auto result_pb = m_tls.pub_key_to_bytes();
     auto result_pr = m_tls.private_key_to_bytes();
@@ -44,25 +73,24 @@ Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
 
 bool Client::connect() {
     /*
-        Initial Packet header
+        Connect()
 
-        LH.T == 0
+        This method is only used for establishing connection
+        with servers (Authentication, Cluster Selection, User actions such as
+        Updating info, user name etc.) and not with other clients.
 
-        Long header default
-
-        LH.HF = 1
-        LH.FB = 1
+        Connection with Media servers, other clients etc. must be implemented in
+        separate method, and have different approach rather than simple TLS 1.3
+        handshake over QUIC Transport
     */
-    Packets::LongHeader header;
-    header.source_connection_id = m_req_res_con.id;
-    header.header_form = 1;
-    header.fixed_bit = 1;
-    header.version_id = m_version;
-    header.packet_type = 0;
 
     Packets::Initial initial_packet;
+    initial_packet.header.source_connection_id = m_req_res_con.id;
+    initial_packet.header.destination_connection_id = zclp_uint::u32_rand();
+
     Frames::Crypto crypto_frame;
 
+    bool result = Client::send(nullptr, 0);
     return true;
 }
 
