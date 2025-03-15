@@ -1,5 +1,6 @@
 #include "client.h"
 
+#include <netdb.h>
 #include <openssl/crypto.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -145,8 +146,19 @@ bool Client::send(uint8_t* message, ssize_t len) {
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(6666);
-    dest_addr.sin_addr.s_addr =
-        inet_addr(m_req_res_con.destination_cluster_mask.value().c_str());
+
+    // Using Addr info to resolve DNS (zurui.io -> 127.0.0.1)
+    // Local DNS masks
+    std::string dest_host = m_req_res_con.destination_cluster_mask.value();
+    struct addrinfo hints{}, *res;
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if (getaddrinfo(dest_host.c_str(), NULL, &hints, &res) != 0)
+        return false;
+
+    dest_addr.sin_addr = ((struct sockaddr_in*)res->ai_addr)->sin_addr;
+    freeaddrinfo(res);
 
     ssize_t sent_len = sendto(m_socket_fd, message, len, 0,
                               (struct sockaddr*)&dest_addr, sizeof(dest_addr));
