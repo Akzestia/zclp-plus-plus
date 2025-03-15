@@ -44,14 +44,15 @@ Server::Server(uint16_t listener_port, uint16_t sender_port) noexcept
     : m_max_mtu(1500),
       m_listener_port(listener_port),
       m_sender_port(sender_port) {
+    zclp_tls::init();
 }
 
-bool Server::run() {
+SetupError Server::run() {
     m_listener_fd = socket(AF_INET, SOCK_DGRAM, 0);
     m_sender_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (m_listener_fd < 0 || m_sender_socket_fd < 0) {
-        return false;
+        return SocketCreationFailed;
     }
 
     // Make sender non-blocking
@@ -70,14 +71,14 @@ bool Server::run() {
              sizeof(sockaddr))
         < 0) {
         close(m_listener_fd);
-        return false;
+        return SocketBindFailed;
     }
 
     if (bind(m_sender_socket_fd, (struct sockaddr*)&m_sender_addr,
              sizeof(sockaddr))
         < 0) {
         close(m_sender_socket_fd);
-        return false;
+        return SocketBindFailed;
     }
 
     m_is_running.store(true);
@@ -103,6 +104,8 @@ bool Server::run() {
         uint8_t* packet = new uint8_t[len];
         memcpy(packet, buffer, len);
 
+        printf("\nx\n");
+
         pool.assign_task([this, packet, len, client_addr]() mutable {
             process_udp_pack(packet, len);
             send_ack_pack(client_addr);
@@ -110,7 +113,7 @@ bool Server::run() {
         packet = nullptr;
     }
     close(m_listener_fd);
-    return true;
+    return SetupError::Success;
 };
 
 void Server::process_udp_pack(uint8_t* packet, ssize_t len) {
