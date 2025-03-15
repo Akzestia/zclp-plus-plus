@@ -1,3 +1,6 @@
+#ifndef SERVER_H
+#define SERVER_H
+
 #include <arpa/inet.h>
 #include <sys/types.h>
 
@@ -7,6 +10,7 @@
 #include <vector>
 
 #include "../zclp_utils/zclp_utils.h"
+#include "server_errors.hpp"
 
 /*
     Function results
@@ -38,7 +42,7 @@
 */
 
 struct Server {
-    [[nodiscard]] bool run();
+    [[nodiscard]] SetupError run();
     [[nodiscard]] Server(uint16_t listener_port, uint16_t sender_port) noexcept;
     void process_udp_pack(uint8_t* packet, ssize_t len);
     void send_ack_pack(sockaddr_in destiantion_addr) const;
@@ -71,3 +75,5 @@ struct Server {
 
     std::atomic<bool> m_is_running;
 };
+
+#endif  // SERVER_H
