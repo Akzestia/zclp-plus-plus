@@ -4,6 +4,7 @@ project(server)
 ADD_EXECUTABLE(server
     main.cpp
     server.cpp
+    server_errors.cpp
 )
 
 set_target_properties(server PROPERTIES LINKER_LANGUAGE CXX)
