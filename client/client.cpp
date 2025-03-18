@@ -10,6 +10,8 @@
 #include <cstring>
 
 #include "../tokio-cpp/tokio.hpp"
+#include "../zclp_utils/zclp_utils.h"
+#include "client_errors.h"
 
 /*
     Function results
@@ -72,7 +74,7 @@ Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
     m_req_res_con.destination_cluster_mask = "zurui.io";
 }
 
-bool Client::connect() {
+ZclpResult Client::connect() {
     /*
         Connect()
 
@@ -91,14 +93,25 @@ bool Client::connect() {
 
     Frames::Crypto crypto_frame;
 
-    bool result = Client::send(nullptr, 0);
-    return true;
+    uint8_t* initial_packet_out_buff;
+    auto encoding_result = zclp_encoding::encode_initial_packet(
+        initial_packet, initial_packet_out_buff);
+
+    if (!encoding_result) {
+        return ZclpResult::Failure(
+            client_errors::EncodingError::EncodingFailed);
+    }
+
+    ZclpResult result =
+        Client::send(initial_packet_out_buff, encoding_result.len);
+    return result;
 }
 
-bool Client::run() {
+ZclpResult Client::run() {
     m_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (m_socket_fd < 0) {
-        return false;
+        return ZclpResult::Failure(
+            client_errors::SetupError::SocketCreationFailed);
     }
 
     m_addr.sin_family = AF_INET;
@@ -107,7 +120,7 @@ bool Client::run() {
 
     if (bind(m_socket_fd, (struct sockaddr*)&m_addr, sizeof(sockaddr)) < 0) {
         close(m_socket_fd);
-        return false;
+        return ZclpResult::Failure(client_errors::SetupError::SocketBindFailed);
     }
 
     m_is_running.store(true);
@@ -139,10 +152,10 @@ bool Client::run() {
         packet = nullptr;
     }
     close(m_socket_fd);
-    return true;
+    return ZclpResult::Success();
 }
 
-bool Client::send(uint8_t* message, ssize_t len) {
+ZclpResult Client::send(uint8_t* message, ssize_t len) {
     struct sockaddr_in dest_addr;
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(6666);
@@ -155,7 +168,8 @@ bool Client::send(uint8_t* message, ssize_t len) {
     hints.ai_socktype = SOCK_DGRAM;
 
     if (getaddrinfo(dest_host.c_str(), NULL, &hints, &res) != 0)
-        return false;
+        return ZclpResult::Failure(
+            client_errors::DNS_Error::AddressParsingFailed);
 
     dest_addr.sin_addr = ((struct sockaddr_in*)res->ai_addr)->sin_addr;
     freeaddrinfo(res);
@@ -164,9 +178,9 @@ bool Client::send(uint8_t* message, ssize_t len) {
                               (struct sockaddr*)&dest_addr, sizeof(dest_addr));
 
     if (sent_len < 0)
-        return false;
+        return ZclpResult::Failure(client_errors::SocketError::FailedToSend);
 
-    return true;
+    return ZclpResult::Success();
 }
 
 void Client::process_udp_pack(uint8_t* packet, ssize_t len) {
