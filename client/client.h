@@ -1,9 +1,12 @@
+#ifndef CLIENT_H
+#define CLIENT_H
 #include <arpa/inet.h>
 
 #include <atomic>
 #include <cstdint>
 #include <vector>
 
+#include "../zclp++/zclp_generics.h"
 #include "../zclp_utils/zclp_utils.h"
 
 /*
@@ -13,9 +16,9 @@
     success and result. Optionally containing additional fields.
 
     struct Result {
-        type success
+        type successCLIENT_ERRORS
         type data | result | payload
-        ..
+        ..CLIENT_ERRORS
     };
 
     Result void func();
@@ -35,18 +38,20 @@
     }
 */
 
+using namespace zclp_generics;
+
 struct Client {
-    [[nodiscard]] bool run();
+    [[nodiscard]] ZclpResult run();
     [[nodiscard]] Client(uint16_t port) noexcept;
     void process_udp_pack(uint8_t* packet, ssize_t len);
-    [[nodiscard]] bool send(uint8_t* message, ssize_t len);
-    [[nodiscard]] bool connect();
+    [[nodiscard]] ZclpResult send(uint8_t* message, ssize_t len);
+    [[nodiscard]] ZclpResult connect();
     // connection with resumption ticket
-    [[nodiscard]] bool reconnect();
-    [[nodiscard]] bool disconnect();
+    [[nodiscard]] ZclpResult reconnect();
+    [[nodiscard]] ZclpResult disconnect();
 
   private:
-    int m_socket_fd;
+    int m_socket_fd, m_send_socket_fd;
     struct sockaddr_in m_addr;
     uint16_t m_port;
     const int m_max_mtu;
@@ -72,3 +77,5 @@ struct Client {
 
     uint32_t m_version;
 };
+
+#endif  // CLIENT_H
