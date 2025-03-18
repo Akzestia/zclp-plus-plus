@@ -10,6 +10,7 @@
 #include <cstring>
 
 #include "../tokio-cpp/tokio.hpp"
+#include "server_errors.h"
 
 /*
     Function results
@@ -47,12 +48,13 @@ Server::Server(uint16_t listener_port, uint16_t sender_port) noexcept
     zclp_tls::init();
 }
 
-SetupError Server::run() {
+ZclpResult Server::run() {
     m_listener_fd = socket(AF_INET, SOCK_DGRAM, 0);
     m_sender_socket_fd = socket(AF_INET, SOCK_DGRAM, 0);
 
     if (m_listener_fd < 0 || m_sender_socket_fd < 0) {
-        return SocketCreationFailed;
+        return ZclpResult::Failure(
+            server_errors::SetupError::SocketCreationFailed);
     }
 
     // Make sender non-blocking
@@ -71,14 +73,14 @@ SetupError Server::run() {
              sizeof(sockaddr))
         < 0) {
         close(m_listener_fd);
-        return SocketBindFailed;
+        return ZclpResult::Failure(server_errors::SetupError::SocketBindFailed);
     }
 
     if (bind(m_sender_socket_fd, (struct sockaddr*)&m_sender_addr,
              sizeof(sockaddr))
         < 0) {
         close(m_sender_socket_fd);
-        return SocketBindFailed;
+        return ZclpResult::Failure(server_errors::SetupError::SocketBindFailed);
     }
 
     m_is_running.store(true);
@@ -113,7 +115,7 @@ SetupError Server::run() {
         packet = nullptr;
     }
     close(m_listener_fd);
-    return SetupError::Success;
+    return ZclpResult::Success();
 };
 
 void Server::process_udp_pack(uint8_t* packet, ssize_t len) {
