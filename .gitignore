@@ -35,3 +35,7 @@ build
 
 *.pem
 *bin
+
+
+# Customs
+main.cpp
