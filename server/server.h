@@ -9,8 +9,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../zclp++/zclp_generics.h"
 #include "../zclp_utils/zclp_utils.h"
-#include "server_errors.hpp"
 
 /*
     Function results
@@ -41,8 +41,10 @@
     }
 */
 
+using namespace zclp_generics;
+
 struct Server {
-    [[nodiscard]] SetupError run();
+    [[nodiscard]] ZclpResult run();
     [[nodiscard]] Server(uint16_t listener_port, uint16_t sender_port) noexcept;
     void process_udp_pack(uint8_t* packet, ssize_t len);
     void send_ack_pack(sockaddr_in destiantion_addr) const;
