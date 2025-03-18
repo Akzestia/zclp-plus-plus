@@ -3,6 +3,7 @@ project(zclp++)
 
 add_library(zclp++
     zclp++.h zclp++.cpp
+    zclp_generics.h zclp_generics.cpp
 )
 
 set_target_properties(zclp++ PROPERTIES LINKER_LANGUAGE CXX)
