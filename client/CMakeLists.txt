@@ -4,6 +4,7 @@ project(client)
 ADD_EXECUTABLE(client
     main.cpp
     client.cpp
+    client_errors.cpp
 )
 
 set_target_properties(client PROPERTIES LINKER_LANGUAGE CXX)
