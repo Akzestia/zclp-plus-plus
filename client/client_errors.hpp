@@ -1,4 +1,0 @@
-#ifndef CLIENT_ERRORS
-#define CLIENT_ERRORS
-
-#endif  // CLIENT_ERRORS
