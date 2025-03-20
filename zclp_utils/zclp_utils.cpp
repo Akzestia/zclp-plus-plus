@@ -85,7 +85,10 @@ EncodingResult encode_vl_integer(const VariableLengthInteger& in,
 
 EncodingResult decode_vl_integer(uint8_t* in, VariableLengthInteger& out) {
     uint64_t value = 0;
-    // printu8(in, 1);
+#ifdef DEBUG
+    printu8(in, 1);
+#endif
+
     size_t len = get_vl_len(in);
 
     in[0] &= 0b00111111;
@@ -320,8 +323,10 @@ EncodingResult encode_initial_packet(const Packets::Initial& in,
         offset += res.len;
         frame_ref = nullptr;
     }
-
+#ifdef DEBUG
     printu8(out, len);
+#endif
+
     uint8_t* ref_shift = out + packet_number_offset;
     shift_left(ref_shift, in.length, 5);
     out[packet_number_offset] |= (in.packet_number << 5);
@@ -368,7 +373,10 @@ EncodingResult decode_initial_packet(uint8_t* in, size_t in_len,
     out.packet_number = (d_packet_number_ref[0] >> 5) & 0b111;
     shift_right(d_packet_number_ref, out.length, 5);
     d_packet_number_ref = nullptr;
+
+#ifdef DEBUG
     printu8(in, in_len);
+#endif
 
     size_t payload_size = out.length - 1, d_payload_size = 0;
     while (d_payload_size < payload_size) {
