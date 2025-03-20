@@ -5,6 +5,7 @@
 
 #include "../client/client_errors.h"
 #include "../server/server_errors.h"
+#include "zclp_rpc_errors.h"
 
 namespace zclp_generics {
 
@@ -14,14 +15,16 @@ enum class GenericResults : uint8_t {
     Undefined = 2,
 };
 
-using ZclpError = std::variant<client_errors::ClientError,
-                               server_errors::ServerError, GenericResults>;
+using ZclpError =
+    std::variant<client_errors::ClientError, server_errors::ServerError,
+                 zclp_rpc_errors::RpcError, GenericResults>;
 
 struct ZclpResult {
     bool success = false;
     ZclpError error;
 
     bool operator!();
+    operator int() const { return success; };
 
     [[nodiscard]] static ZclpResult Success() noexcept;
     [[nodiscard]] static ZclpResult Failure(ZclpError error) noexcept;
