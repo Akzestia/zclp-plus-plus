@@ -46,10 +46,16 @@ Client::Client(uint16_t port) noexcept : m_port(port), m_max_mtu(1500) {
     auto result_pb = m_tls.pub_key_to_bytes();
     auto result_pr = m_tls.private_key_to_bytes();
 
+    /*
+        Leaves only the actual data from certs, without BEGIN END etc.
+    */
     m_tls.strip_pem_formatting(result_pb->result, result_pb->len);
     m_tls.strip_pem_formatting(result_pr->result, result_pr->len);
+
+#ifdef DEBUG
     printf("%.*s\n", (int)result_pb->len, result_pb->result);
     printf("%.*s\n", (int)result_pr->len, result_pr->result);
+#endif
 
     delete result_pb;
     delete result_pr;
