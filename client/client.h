@@ -43,10 +43,24 @@ using namespace zclp_generics;
 struct Client {
     [[nodiscard]] ZclpResult run();
     [[nodiscard]] Client(uint16_t port) noexcept;
+    /*
+        UDP packet processing
+
+        process_udp_pack() is only used for receiving and storing
+        incoming udp packages inside corresponding managers.
+        Packet ordering, decryption, and manipulation is handled
+        separately inside standalone managers such as stream_manager.
+    */
     void process_udp_pack(uint8_t* packet, ssize_t len);
     [[nodiscard]] ZclpResult send(uint8_t* message, ssize_t len);
     [[nodiscard]] ZclpResult connect();
-    // connection with resumption ticket
+    /*
+        Difference between connect() & reconnect()
+
+        connect() is used by client during 1st time connection
+        to the server. While reconnect() is used when client has
+        resumption ticket, in order to lower the connection time.
+    */
     [[nodiscard]] ZclpResult reconnect();
     [[nodiscard]] ZclpResult disconnect();
 
@@ -55,6 +69,15 @@ struct Client {
     struct sockaddr_in m_addr;
     uint16_t m_port;
     const int m_max_mtu;
+    /*
+        Tls arena
+
+        Similiar to google's protobuf Arena, it manages tls certs,
+        related data etc. on the heap, and responsible for allocating and
+        deallocating memory resources used by it.
+
+        All Tls related functionality must be implemented insdie zclp_tls_arena!
+    */
     zclp_tls::zclp_tls_arena m_tls;
     /*
         Request | Response connection.
