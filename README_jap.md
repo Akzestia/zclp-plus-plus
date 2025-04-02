@@ -10,4 +10,4 @@
 > [!NOTE]
 > [zclp-rs](https://github.com/Akzestia/zclp-rs) は同じプロトコル実装なので、Rust 実装に興味がある場合は、ぜひチェックしてみてください。
 
-### zclp++ は、C++ で記述された [ずるい](https://github.com/Akzestia/Zurui) アプリケーションのニーズに合わせて最適化された QUIC ソリューションです。
+### zclp++ は、[ずるい](https://github.com/Akzestia/Zurui) アプリケーションのニーズに合わせて調整された、C++ で書かれた最適化された QUIC ソリューションです。
