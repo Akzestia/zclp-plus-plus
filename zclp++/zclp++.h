@@ -610,6 +610,7 @@ struct Connection {
     */
     std::optional<std::string> destination_cluster_mask;
 };
+
 }  // namespace Structs
 
 #endif  // ZCLP_PLUS_PLUS
