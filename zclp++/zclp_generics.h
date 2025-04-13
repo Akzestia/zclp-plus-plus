@@ -15,9 +15,8 @@ enum class GenericResults : uint8_t {
     Undefined = 2,
 };
 
-using ZclpError =
-    std::variant<client_errors::ClientError, server_errors::ServerError,
-                 zclp_rpc_errors::RpcError, GenericResults>;
+using ZclpError = std::variant<client_errors::ClientError,
+                               server_errors::ServerError, GenericResults>;
 
 struct ZclpResult {
     bool success = false;
