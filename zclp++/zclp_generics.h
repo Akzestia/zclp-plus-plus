@@ -5,7 +5,6 @@
 
 #include "../client/client_errors.h"
 #include "../server/server_errors.h"
-#include "zclp_rpc_errors.h"
 
 namespace zclp_generics {
 
